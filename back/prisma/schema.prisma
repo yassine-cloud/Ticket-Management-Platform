@@ -1,0 +1,502 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  moduleFormat = "cjs"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  engineType   = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleScope {
+  GLOBAL
+  PROJECT
+}
+
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MANAGER
+  DEVELOPER
+  QA
+  VIEWER
+  CLIENT
+}
+
+enum TicketType {
+  BUG
+  FEATURE
+  TASK
+  EPIC
+  INCIDENT
+  SECURITY
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  DISCORD
+  PUSH
+}
+
+enum ChannelType {
+  PROJECT
+  DM
+  TICKET
+}
+
+enum PresenceStatus {
+  ONLINE
+  IDLE
+  BUSY
+  OFFLINE
+}
+
+enum TicketLinkType {
+  BLOCKS
+  DUPLICATES
+  RELATES
+}
+
+enum TicketActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMMENT_ADDED
+  ATTACHMENT_ADDED
+  AUTOMATION
+}
+
+model User {
+  id              String              @id @default(uuid())
+  email           String              @unique
+  username        String              @unique
+  displayName     String
+  passwordHash    String?
+  isActive        Boolean             @default(true)
+  isEmailVerified Boolean             @default(false)
+  twoFactorSecret String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  projectMembers      ProjectMember[]
+  reportedTickets     Ticket[]        @relation("TicketReporter")
+  assignedTickets     Ticket[]        @relation("TicketAssignee")
+  comments            TicketComment[]
+  uploads             Attachment[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]      @relation("AuditActor")
+  sessions            Session[]
+  messages            Message[]
+  channelMembers      ChannelMember[]
+  presence            Presence?
+  roleAssignments     RoleAssignment[]
+  ticketWatchers      TicketWatcher[]
+  ticketActivities    TicketActivity[]
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  name           String
+  slug           String
+  description    String?
+  isPublic       Boolean  @default(false)
+  isArchived     Boolean  @default(false)
+  settings       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  members       ProjectMember[]
+  tickets       Ticket[]
+  statuses      TicketStatus[]
+  labels        Label[]
+  webhooks      WebhookConfig[]
+  automation    AutomationRule[]
+  slaPolicies   SLA[]
+  channels      Channel[]
+  roleAssignments RoleAssignment[]
+
+  @@unique([slug])
+  @@index([slug])
+}
+
+model ProjectMember {
+  id        String      @id @default(uuid())
+  projectId String
+  userId    String
+  role      ProjectRole
+  joinedAt  DateTime    @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String
+  scope       RoleScope
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  permissions RolePermission[]
+  assignments RoleAssignment[]
+
+  @@unique([name, scope])
+}
+
+model Permission {
+  id          String @id @default(uuid())
+  key         String @unique
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model RoleAssignment {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  projectId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, projectId])
+  @@index([projectId])
+}
+
+model TicketStatus {
+  id        String   @id @default(uuid())
+  projectId String?
+  name      String
+  slug      String?
+  color     String?
+  order     Int      @default(0)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@unique([projectId, name])
+  @@index([projectId, order])
+}
+
+model Ticket {
+  id              String         @id @default(uuid())
+  key             String?        @unique
+  projectId       String
+  type            TicketType     @default(TASK)
+  title           String
+  description     String?
+  statusId        String
+  priority        TicketPriority @default(MEDIUM)
+  reporterId      String
+  assigneeId      String?
+  estimateMinutes Int?
+  storyPoints     Int?
+  dueDate         DateTime?
+  parentId        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  closedAt        DateTime?
+
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status    TicketStatus @relation(fields: [statusId], references: [id])
+  reporter  User         @relation("TicketReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  assignee  User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  parent    Ticket?      @relation("TicketParent", fields: [parentId], references: [id])
+  children  Ticket[]     @relation("TicketParent")
+  comments  TicketComment[]
+  attachments Attachment[]
+  labels    TicketLabel[]
+  watchers  TicketWatcher[]
+  linksFrom TicketLink[] @relation("TicketLinkFrom")
+  linksTo   TicketLink[] @relation("TicketLinkTo")
+  activities TicketActivity[]
+  channels  Channel[]
+
+  @@index([projectId, statusId])
+  @@index([assigneeId])
+  @@index([reporterId])
+}
+
+model TicketLink {
+  id           String         @id @default(uuid())
+  fromTicketId String
+  toTicketId   String
+  type         TicketLinkType
+  createdAt    DateTime       @default(now())
+
+  fromTicket Ticket @relation("TicketLinkFrom", fields: [fromTicketId], references: [id], onDelete: Cascade)
+  toTicket   Ticket @relation("TicketLinkTo", fields: [toTicketId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTicketId, toTicketId, type])
+  @@index([toTicketId])
+}
+
+model TicketWatcher {
+  ticketId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, userId])
+  @@index([userId])
+}
+
+model TicketLabel {
+  ticketId String
+  labelId  String
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  label  Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, labelId])
+}
+
+model TicketComment {
+  id        String   @id @default(uuid())
+  ticketId  String
+  authorId  String
+  content   String
+  editedAt  DateTime?
+  createdAt DateTime @default(now())
+  isDeleted Boolean  @default(false)
+
+  ticket      Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+model TicketActivity {
+  id        String             @id @default(uuid())
+  ticketId  String
+  actorId   String?
+  type      TicketActivityType
+  payload   Json?
+  createdAt DateTime           @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+}
+
+model Attachment {
+  id          String   @id @default(uuid())
+  ticketId    String?
+  commentId   String?
+  messageId   String?
+  uploaderId  String
+  storagePath String
+  filename    String
+  mimeType    String
+  size        Int
+  checksum    String?
+  createdAt   DateTime @default(now())
+
+  ticket   Ticket?       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  comment  TicketComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  message  Message?      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader User          @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([commentId])
+  @@index([messageId])
+}
+
+model Label {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String
+  color     String?
+  createdAt DateTime @default(now())
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tickets TicketLabel[]
+
+  @@unique([projectId, name])
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  channel   NotificationChannel
+  payload   Json
+  isRead    Boolean             @default(false)
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  action       String
+  resourceType String
+  resourceId   String
+  before       Json?
+  after        Json?
+  ip           String?
+  device       String?
+  createdAt    DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([resourceType, resourceId])
+  @@index([actorId])
+}
+
+model WebhookConfig {
+  id          String   @id @default(uuid())
+  projectId   String
+  url         String
+  events      String[]
+  secret      String?
+  isActive    Boolean  @default(true)
+  retryPolicy Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Channel {
+  id        String      @id @default(uuid())
+  projectId String?
+  ticketId  String?
+  name      String?
+  type      ChannelType
+  createdAt DateTime    @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ticket  Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  members ChannelMember[]
+  messages Message[]
+
+  @@index([projectId])
+  @@index([ticketId])
+}
+
+model ChannelMember {
+  channelId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  channelId String
+  authorId  String
+  content   String
+  editedAt  DateTime?
+  createdAt DateTime @default(now())
+  isDeleted Boolean  @default(false)
+
+  channel     Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([channelId, createdAt])
+  @@index([authorId])
+}
+
+model Presence {
+  userId   String         @id
+  status   PresenceStatus @default(OFFLINE)
+  lastSeen DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id             String   @id @default(uuid())
+  userId         String
+  deviceInfo     Json?
+  ip             String?
+  refreshTokenId String   @unique
+  createdAt      DateTime @default(now())
+  revokedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AutomationRule {
+  id         String   @id @default(uuid())
+  projectId  String
+  name       String
+  trigger    Json
+  conditions Json
+  actions    Json
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, isActive])
+}
+
+model SLA {
+  id                   String   @id @default(uuid())
+  projectId            String
+  name                 String
+  conditions           Json
+  responseTimeMinutes  Int
+  escalationPolicy     Json
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
