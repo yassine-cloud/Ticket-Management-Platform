@@ -406,17 +406,23 @@ model Channel {
   id        String      @id @default(uuid())
   projectId String?
   ticketId  String?
+  createdById String
   name      String?
   type      ChannelType
+  isDeleted Boolean     @default(false)
+  deletedAt DateTime?
   createdAt DateTime    @default(now())
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   ticket  Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [createdById], references: [id], onDelete: Cascade)
   members ChannelMember[]
   messages Message[]
 
   @@index([projectId])
   @@index([ticketId])
+  @@index([createdById])
+  @@index([isDeleted])
 }
 
 model ChannelMember {
