@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../database/database.service';
+import { DatabaseService } from '../../database/database.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateChannelDTO } from '../dto/create-channel.dto';
 import { UpdateChannelDTO } from '../dto/update-channel.dto';
@@ -8,7 +8,7 @@ import { ChannelResponseDTO } from '../dto/channel-response.dto';
 @Injectable()
 export class ChannelsService {
   constructor(
-    private prisma: PrismaService,
+    private prisma: DatabaseService,
     private cloudinaryService: CloudinaryService,
   ) {}
 

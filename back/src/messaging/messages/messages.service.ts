@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../database/database.service';
+import { DatabaseService } from '../../database/database.service';
 import { CreateMessageDTO } from '../dto/create-message.dto';
 import { UpdateMessageDTO } from '../dto/update-message.dto';
 import { MessageResponseDTO } from '../dto/message-response.dto';
@@ -13,7 +13,7 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 @Injectable()
 export class MessagesService {
   constructor(
-    private prisma: PrismaService,
+    private prisma: DatabaseService,
     private cloudinaryService: CloudinaryService,
   ) {}
 
