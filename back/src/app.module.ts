@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MessagingModule } from './messaging/messaging.module';
 
 
 @Module({
@@ -14,6 +15,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       delimiter: '.'
     }),
     DatabaseModule,
+    MessagingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
