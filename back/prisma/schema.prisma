@@ -103,6 +103,7 @@ model User {
   sessions            Session[]
   messages            Message[]
   channelMembers      ChannelMember[]
+  createdChannels     Channel[]       @relation("ChannelCreator")
   presence            Presence?
   roleAssignments     RoleAssignment[]
   ticketWatchers      TicketWatcher[]
@@ -415,7 +416,7 @@ model Channel {
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   ticket  Ticket?  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  creator User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  creator User @relation("ChannelCreator", fields: [createdById], references: [id], onDelete: Cascade)
   members ChannelMember[]
   messages Message[]
 
