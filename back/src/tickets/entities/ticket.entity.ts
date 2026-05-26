@@ -7,31 +7,31 @@ registerEnumType(TicketPriority, { name: 'TicketPriority' });
 @ObjectType()
 export class Ticket {
   @Field(() => ID)
-  id: string;
+  id!: string;
 
   @Field({ nullable: true })
   key?: string;
 
   @Field()
-  projectId: string;
+  projectId!: string;
 
   @Field(() => TicketType)
-  type: TicketType;
+  type!: TicketType;
 
   @Field()
-  title: string;
+  title!: string;
 
   @Field({ nullable: true })
   description?: string;
 
   @Field()
-  statusId: string;
+  statusId!: string;
 
   @Field(() => TicketPriority)
-  priority: TicketPriority;
+  priority!: TicketPriority;
 
   @Field()
-  reporterId: string;
+  reporterId!: string;
 
   @Field({ nullable: true })
   assigneeId?: string;
@@ -49,10 +49,10 @@ export class Ticket {
   dueDate?: Date;
 
   @Field()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Field()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Field({ nullable: true })
   closedAt?: Date;
