@@ -15,12 +15,12 @@ export class CreateTicketDto {
   @Field()
   @IsUUID()
   @IsNotEmpty()
-  projectId: string;
+  projectId!: string;
 
   @Field()
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @Field({ nullable: true })
   @IsString()
@@ -40,12 +40,12 @@ export class CreateTicketDto {
   @Field()
   @IsUUID()
   @IsNotEmpty()
-  statusId: string;
+  statusId!: string;
 
   @Field()
   @IsUUID()
   @IsNotEmpty()
-  reporterId: string;
+  reporterId!: string;
 
   @Field({ nullable: true })
   @IsUUID()
