@@ -39,7 +39,7 @@ export class ChannelsService {
       data: {
         projectId: dto.projectId,
         name: dto.name,
-        type: dto.type,
+        type: dto.type!,
         createdById: userId,
       },
       include: {
@@ -268,7 +268,7 @@ export class ChannelsService {
       });
 
       isProjectAdmin =
-        projectMember && ['OWNER', 'ADMIN'].includes(projectMember.role);
+        projectMember != null && ['OWNER', 'ADMIN'].includes(projectMember.role);
     }
 
     // Allow deletion if channel creator OR project admin
@@ -284,7 +284,7 @@ export class ChannelsService {
         try {
           const publicId = this.extractPublicIdFromUrl(attachment.storagePath);
           await this.cloudinaryService.deleteFile(publicId);
-        } catch (error) {
+        } catch (error : any) {
           // Log error but don't fail the whole operation
           console.error(
             `Failed to delete Cloudinary file ${attachment.storagePath}: ${error.message}`,
@@ -540,7 +540,7 @@ export class ChannelsService {
       const publicIdWithExtension = parts.slice(vIndex + 1).join('/');
       // Remove file extension
       return publicIdWithExtension.split('.')[0];
-    } catch (error) {
+    } catch (error : any) {
       throw new Error(`Failed to extract public ID from URL: ${error.message}`);
     }
   }

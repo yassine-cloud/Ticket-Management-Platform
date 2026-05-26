@@ -1,13 +1,14 @@
-import { IsString, IsEnum, IsUUID } from 'class-validator';
-import { ChannelType } from '@prisma/client';
+import { IsString, IsEnum, IsUUID, IsNotEmpty } from 'class-validator';
+import { ChannelType } from 'generated/prisma/enums';
 
 export class CreateChannelDTO {
   @IsUUID()
-  projectId: string;
+  projectId!: string;
 
   @IsString()
-  name: string;
+  name!: string;
 
+  @IsNotEmpty()
   @IsEnum(ChannelType)
-  type: ChannelType;
+  type!: ChannelType;
 }

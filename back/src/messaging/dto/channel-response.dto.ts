@@ -1,12 +1,12 @@
-import { ChannelType } from '@prisma/client';
+import { ChannelType } from "generated/prisma/enums";
 
 export class ChannelResponseDTO {
-  id: string;
+  id!: string;
   projectId?: string;
   ticketId?: string;
   name?: string;
-  type: ChannelType;
-  createdAt: Date;
+  type?: ChannelType;
+  createdAt!: Date;
   members?: Array<{
     id: string;
     username: string;

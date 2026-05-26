@@ -103,6 +103,7 @@ model User {
   sessions            Session[]
   messages            Message[]
   channelMembers      ChannelMember[]
+  createdChannels     Channel[]
   presence            Presence?
   roleAssignments     RoleAssignment[]
   ticketWatchers      TicketWatcher[]
