@@ -1,0 +1,56 @@
+
+
+@baseUrl = http://localhost:3000
+@contentType = application/json
+@adminUsername = "admin"
+@adminEmail = "admin@email.com"
+@adminPassword = "admin123"
+
+
+###
+POST {{baseUrl}}/auth/register
+Content-Type: {{contentType}}
+
+{
+    "username": {{adminUsername}},
+    "email": {{adminEmail}},
+    "displayName": "Admin User",
+    "password": {{adminPassword}}
+}
+
+###
+# @name loginadmin
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": {{adminEmail}},
+    "password": {{adminPassword}}
+}
+###
+@adminRefreshToken = {{loginadmin.response.body.refreshToken}}
+@adminAccessToken = {{loginadmin.response.body.accessToken}}
+
+###
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+    "refreshToken": "{{adminRefreshToken}}"
+}
+
+###
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
+
+{
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZGZiNDM0Zi1jYWVjLTQxZGMtYTZlYi1mZWI2ODBlMTFkZDgiLCJqdGkiOiJkNzkyYTEwZi0yYzhiLTRmMWMtODk3Ni02OWI3ZTkwMjQ0MzUiLCJpYXQiOjE3Nzk4MzU5NTQsImV4cCI6MTc4MDQ0MDc1NH0.PkReZZOMWU4D3i8VIu2pVzFtUxq1LKzCqarmuqcfbHk"
+}
+
+### 
+POST {{baseUrl}}/auth/logout
+Content-Type: {{contentType}}
+
+{
+    "refreshToken": "{{adminRefreshToken}}"
+}
