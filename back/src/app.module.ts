@@ -12,6 +12,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     FilesModule,
     ProjectsModule,
     AnalyticsModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
