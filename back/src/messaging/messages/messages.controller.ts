@@ -30,7 +30,7 @@ export class MessagesController {
     @Body() dto: CreateMessageDTO,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.user?.id || 'user-id-placeholder';
+    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
     return this.messagesService.createMessage(dto, userId);
   }
 
@@ -45,7 +45,7 @@ export class MessagesController {
     @Query('offset') offset: string = '0',
     @Req() req: any,
   ): Promise<{ messages: MessageResponseDTO[]; total: number }> {
-    const userId = req.user?.id || 'user-id-placeholder';
+    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
     return this.messagesService.getMessages(
       channelId,
       userId,
@@ -63,7 +63,7 @@ export class MessagesController {
     @Param('messageId') messageId: string,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.user?.id || 'user-id-placeholder';
+    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
     return this.messagesService.getMessage(messageId, userId);
   }
 
@@ -77,7 +77,7 @@ export class MessagesController {
     @Body() dto: UpdateMessageDTO,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.user?.id || 'user-id-placeholder';
+    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
     return this.messagesService.updateMessage(messageId, dto, userId);
   }
 
@@ -90,7 +90,7 @@ export class MessagesController {
     @Param('messageId') messageId: string,
     @Req() req: any,
   ): Promise<{ message: string }> {
-    const userId = req.user?.id || 'user-id-placeholder';
+    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
     return this.messagesService.deleteMessage(messageId, userId);
   }
 

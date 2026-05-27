@@ -23,7 +23,7 @@ export class MessagingGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -108,7 +108,7 @@ export class MessagingGateway
   /**
    * Emit message.created event to channel
    */
-  emitMessageCreated(channelId: string, message: any) {
+  emitMessageCreated(channelId: string, message: Record<string, any>) {
     const room = `channel-${channelId}`;
     this.server.to(room).emit('message.created', {
       channelId,
@@ -120,7 +120,7 @@ export class MessagingGateway
   /**
    * Emit message.updated event to channel
    */
-  emitMessageUpdated(channelId: string, message: any) {
+  emitMessageUpdated(channelId: string, message: Record<string, any>) {
     const room = `channel-${channelId}`;
     this.server.to(room).emit('message.updated', {
       channelId,
