@@ -30,6 +30,7 @@ import { ProjectsModule } from './projects/projects.module';
     MessagingModule,
     FilesModule,
     ProjectsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
