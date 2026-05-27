@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { TicketStatusModule } from './ticket-status/ticket-status.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 
@@ -14,6 +15,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       delimiter: '.'
     }),
     DatabaseModule,
+    TicketStatusModule,
   ],
   controllers: [AppController],
   providers: [AppService],
