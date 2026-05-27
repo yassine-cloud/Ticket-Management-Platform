@@ -25,6 +25,48 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Quick Start
+
+### 1. Setup Environment
+
+Create `.env` file:
+
+```env
+# Database (required)
+DATABASE_URL="postgresql://user:password@localhost:5432/ticket_db"
+
+# Cloudinary (required for messaging file uploads)
+CLOUDINARY_CLOUD_NAME="your_cloud_name"
+CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+
+# Server (optional)
+PORT=3000
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Setup Database
+
+Generate and run migrations:
+
+```bash
+npm run prisma:migrate
+npm run prisma:generate
+```
+
+### 4. Start Server
+
+```bash
+npm run start:dev
+```
+
+The API will be available at `http://localhost:3000`
+
 ## Project setup
 
 ```bash

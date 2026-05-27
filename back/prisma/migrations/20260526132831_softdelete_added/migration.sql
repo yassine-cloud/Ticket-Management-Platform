@@ -274,8 +274,11 @@ CREATE TABLE "Channel" (
     "id" TEXT NOT NULL,
     "projectId" TEXT,
     "ticketId" TEXT,
+    "createdById" TEXT NOT NULL,
     "name" TEXT,
     "type" "ChannelType" NOT NULL,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "deletedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Channel_pkey" PRIMARY KEY ("id")
@@ -451,6 +454,12 @@ CREATE INDEX "Channel_projectId_idx" ON "Channel"("projectId");
 CREATE INDEX "Channel_ticketId_idx" ON "Channel"("ticketId");
 
 -- CreateIndex
+CREATE INDEX "Channel_createdById_idx" ON "Channel"("createdById");
+
+-- CreateIndex
+CREATE INDEX "Channel_isDeleted_idx" ON "Channel"("isDeleted");
+
+-- CreateIndex
 CREATE INDEX "ChannelMember_userId_idx" ON "ChannelMember"("userId");
 
 -- CreateIndex
@@ -569,6 +578,9 @@ ALTER TABLE "Channel" ADD CONSTRAINT "Channel_projectId_fkey" FOREIGN KEY ("proj
 
 -- AddForeignKey
 ALTER TABLE "Channel" ADD CONSTRAINT "Channel_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Channel" ADD CONSTRAINT "Channel_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ChannelMember" ADD CONSTRAINT "ChannelMember_channelId_fkey" FOREIGN KEY ("channelId") REFERENCES "Channel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
