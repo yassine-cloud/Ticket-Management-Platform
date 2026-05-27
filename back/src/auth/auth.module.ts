@@ -11,27 +11,29 @@ import { PermissionsGuard } from './guards/permissions.guard';
 import { AuthController } from './auth.controller';
 
 @Module({
-	imports: [
-		ConfigModule,
-		DatabaseModule,
-		PassportModule.register({ defaultStrategy: 'jwt' }),
-		JwtModule.registerAsync({
-			imports: [ConfigModule],
-			inject: [ConfigService],
-			useFactory: (configService: ConfigService) => {
-				const accessTtl = configService.get<string>('JWT_ACCESS_TTL') ?? '15m';
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const accessTtl = configService.get<string>('JWT_ACCESS_TTL') ?? '15m';
 
-				return {
-					secret: configService.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access-secret',
-					signOptions: {
-						expiresIn: accessTtl as JwtSignOptions['expiresIn']
-					}
-				};
-			}
-		})
-	],
-	controllers: [AuthController],
-	providers: [AuthService, JwtStrategy, JwtAuthGuard, PermissionsGuard],
-	exports: [AuthService, JwtAuthGuard, PermissionsGuard]
+        return {
+          secret:
+            configService.get<string>('JWT_ACCESS_SECRET') ??
+            'dev-access-secret',
+          signOptions: {
+            expiresIn: accessTtl as JwtSignOptions['expiresIn'],
+          },
+        };
+      },
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, PermissionsGuard],
+  exports: [AuthService, JwtAuthGuard, PermissionsGuard],
 })
 export class AuthModule {}
