@@ -60,7 +60,7 @@ export class TicketsService {
   }
 
   async update(id: string, updateTicketDto: UpdateTicketDto) {
-    await this.findOne(id); // Ensure exists
+    const old = await this.findOne(id); // Ensure exists
 
     const ticket = await this.prisma.ticket.update({
       where: { id },
@@ -68,10 +68,10 @@ export class TicketsService {
     });
 
     this.eventEmitter.emit(TICKET_EVENTS.UPDATED, ticket);
-    if (ticket.status === TicketStatus.RESOLVED) {
+    if (ticket.status === TicketStatus.RESOLVED && old.status !== TicketStatus.RESOLVED) {
       this.eventEmitter.emit(TicketEvents.Resolved, ticket);
     }
-    if (updateTicketDto.priority === 'CRITICAL') {
+    if (updateTicketDto.priority === 'CRITICAL' && old.priority !== 'CRITICAL' && ticket.status !== TicketStatus.RESOLVED) {
       this.eventEmitter.emit(TicketEvents.CriticalCreated, ticket);
     }
     return ticket;
