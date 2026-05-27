@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TicketStatus } from '../../generated/prisma/enums';
 import { DatabaseService } from '../database/database.service';
 
 type TicketCounts = {
@@ -30,7 +31,7 @@ export class AnalyticsService {
       this.prisma.ticket.count({
         where: {
           ...(where ?? {}),
-          closedAt: { not: null },
+          status: { in: [TicketStatus.RESOLVED, TicketStatus.CLOSED] },
         },
       }),
     ]);

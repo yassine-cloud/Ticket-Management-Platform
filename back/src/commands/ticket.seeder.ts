@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, scryptSync } from 'crypto';
-import { RoleScope } from '../../generated/prisma/enums';
+import { RoleScope, TicketStatus } from '../../generated/prisma/enums';
 import { DatabaseService } from '../database/database.service';
 import { Project } from '../../generated/prisma/client';
 
@@ -299,6 +299,7 @@ export class TicketSeederService {
           description: 'Implement JWT-based authentication system',
           type: 'TASK' as const,
           priority: 'HIGH' as const,
+          status: TicketStatus.OPEN,
           estimateMinutes: 480,
           storyPoints: 5,
         },
@@ -307,6 +308,7 @@ export class TicketSeederService {
           description: 'Users unable to login on mobile devices',
           type: 'BUG' as const,
           priority: 'CRITICAL' as const,
+          status: TicketStatus.IN_PROGRESS,
           estimateMinutes: 240,
           storyPoints: 3,
         },
@@ -315,13 +317,13 @@ export class TicketSeederService {
           description: 'Implement dark theme for better UX',
           type: 'FEATURE' as const,
           priority: 'MEDIUM' as const,
+          status: TicketStatus.OPEN,
           estimateMinutes: 720,
           storyPoints: 8,
         },
       ];
 
-      for (let i = 0; i < ticketData.length; i++) {
-        const ticketDto = ticketData[i];
+      for (const ticketDto of ticketData) {
         const ticket = await this.databaseService.ticket.create({
           data: {
             ...ticketDto,
