@@ -14,9 +14,9 @@ import { ChannelsService } from './channels.service';
 import { CreateChannelDTO } from '../dto/create-channel.dto';
 import { UpdateChannelDTO } from '../dto/update-channel.dto';
 import { ChannelResponseDTO } from '../dto/channel-response.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt.guard';
 
-// TODO: Create JwtAuthGuard
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('channels')
 export class ChannelsController {
   constructor(private channelsService: ChannelsService) {}
@@ -30,8 +30,7 @@ export class ChannelsController {
     @Body() dto: CreateChannelDTO,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    // TODO: Extract userId from JWT token
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.createChannel(dto, userId);
   }
 
@@ -44,7 +43,7 @@ export class ChannelsController {
     @Query('projectId') projectId: string,
     @Req() req: any,
   ): Promise<ChannelResponseDTO[]> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.getChannelsByProject(projectId, userId);
   }
 
@@ -57,7 +56,7 @@ export class ChannelsController {
     @Param('channelId') channelId: string,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.getChannel(channelId, userId);
   }
 
@@ -71,7 +70,7 @@ export class ChannelsController {
     @Body() dto: UpdateChannelDTO,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.updateChannel(channelId, dto, userId);
   }
 
@@ -84,7 +83,7 @@ export class ChannelsController {
     @Param('channelId') channelId: string,
     @Req() req: any,
   ): Promise<{ message: string }> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     await this.channelsService.deleteChannel(channelId, userId);
     return { message: 'Channel deleted successfully' };
   }
@@ -98,7 +97,7 @@ export class ChannelsController {
     @Param('channelId') channelId: string,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.restoreChannel(channelId, userId);
   }
 
@@ -112,7 +111,7 @@ export class ChannelsController {
     @Body('userId') userId: string,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    const currentUserId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const currentUserId = req.user.id;
     return this.channelsService.addChannelMember(
       channelId,
       userId,
@@ -130,7 +129,7 @@ export class ChannelsController {
     @Param('userId') userId: string,
     @Req() req: any,
   ): Promise<ChannelResponseDTO> {
-    const currentUserId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const currentUserId = req.user.id;
     return this.channelsService.removeChannelMember(
       channelId,
       userId,
@@ -147,7 +146,7 @@ export class ChannelsController {
     @Param('channelId') channelId: string,
     @Req() req: any,
   ) {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.channelsService.getChannelMembers(channelId, userId);
   }
 }

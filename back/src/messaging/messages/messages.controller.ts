@@ -14,9 +14,9 @@ import { MessagesService } from './messages.service';
 import { CreateMessageDTO } from '../dto/create-message.dto';
 import { UpdateMessageDTO } from '../dto/update-message.dto';
 import { MessageResponseDTO } from '../dto/message-response.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt.guard';
 
-// TODO: Create JwtAuthGuard
-// @UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('messages')
 export class MessagesController {
   constructor(private messagesService: MessagesService) {}
@@ -30,7 +30,7 @@ export class MessagesController {
     @Body() dto: CreateMessageDTO,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.messagesService.createMessage(dto, userId);
   }
 
@@ -45,7 +45,7 @@ export class MessagesController {
     @Query('offset') offset: string = '0',
     @Req() req: any,
   ): Promise<{ messages: MessageResponseDTO[]; total: number }> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.messagesService.getMessages(
       channelId,
       userId,
@@ -63,7 +63,7 @@ export class MessagesController {
     @Param('messageId') messageId: string,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.messagesService.getMessage(messageId, userId);
   }
 
@@ -77,7 +77,7 @@ export class MessagesController {
     @Body() dto: UpdateMessageDTO,
     @Req() req: any,
   ): Promise<MessageResponseDTO> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.messagesService.updateMessage(messageId, dto, userId);
   }
 
@@ -90,7 +90,7 @@ export class MessagesController {
     @Param('messageId') messageId: string,
     @Req() req: any,
   ): Promise<{ message: string }> {
-    const userId = req.headers['x-user-id'] || req.user?.id || 'user-id-placeholder';
+    const userId = req.user.id;
     return this.messagesService.deleteMessage(messageId, userId);
   }
 
