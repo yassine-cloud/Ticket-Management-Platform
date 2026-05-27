@@ -10,8 +10,8 @@ import { Injectable, Logger } from '@nestjs/common';
 // } from '@ngneat/falso';
 import { randomBytes, scryptSync } from 'crypto';
 
-import { RoleScope } from 'generated/prisma/client';
-import { DatabaseService } from 'src/database/database.service';
+import { RoleScope } from '../../generated/prisma/client';
+import { DatabaseService } from '../database/database.service';
 
 const permissions = [
   { key: 'assign_ticket', description: 'Assign tickets to users' },

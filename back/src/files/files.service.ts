@@ -14,9 +14,9 @@ export class FilesService {
     private configService: ConfigService,
     private prisma: DatabaseService,
   ) {
-    this.cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
-    this.apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
-    this.apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
+    this.cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME')??'';
+    this.apiKey = this.configService.get<string>('CLOUDINARY_API_KEY')??'';
+    this.apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET')??'';
 
     if (!this.cloudName || !this.apiKey || !this.apiSecret) {
       throw new Error('Cloudinary credentials not configured in environment');
