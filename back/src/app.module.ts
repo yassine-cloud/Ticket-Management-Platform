@@ -6,7 +6,8 @@ import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MessagingModule } from './messaging/messaging.module';
 import { FilesModule } from './files/files.module';
-
+import { TicketsModule } from './tickets/tickets.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +17,8 @@ import { FilesModule } from './files/files.module';
       delimiter: '.'
     }),
     DatabaseModule,
+    AuthModule,
+    TicketsModule,
     MessagingModule,
     FilesModule,
   ],
