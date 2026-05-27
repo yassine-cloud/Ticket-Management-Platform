@@ -1,4 +1,10 @@
-import { IsString, IsUUID, IsArray, IsOptional, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsArray,
+  IsOptional,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class CreateMessageDTO {
   @IsNotEmpty()

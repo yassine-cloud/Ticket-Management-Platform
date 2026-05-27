@@ -47,7 +47,8 @@ export class CloudinaryService {
     folder: string;
   }> {
     const timestamp = Math.floor(Date.now() / 1000);
-    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET') || '';
+    const apiSecret =
+      this.configService.get<string>('CLOUDINARY_API_SECRET') || '';
     const signature = cloudinary.utils.api_sign_request(
       {
         timestamp,
