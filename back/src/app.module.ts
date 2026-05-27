@@ -4,9 +4,10 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MessagingModule } from './messaging/messaging.module';
+import { FilesModule } from './files/files.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
-
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { AuthModule } from './auth/auth.module';
     DatabaseModule,
     AuthModule,
     TicketsModule,
+    MessagingModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

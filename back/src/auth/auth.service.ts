@@ -9,7 +9,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { JwtPayload } from './types/jwt-payload.type';
 import { RegisterDto } from './dto/register.dto';
-import type { Prisma, Session } from 'generated/prisma/client';
+import type { Prisma, Session } from '../../generated/prisma/client';
 
 export type AuthRequestContext = {
     ip?: string | null;
