@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, Search, Settings, LogOut, UserCircle, Menu, Check } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ticketsAPI } from '@/lib/api/tickets.api';
+
+interface Notification {
+  id: string;
+  text: string;
+  time: string;
+  unread: boolean;
+}
 
 export const Header = () => {
   const router = useRouter();
@@ -11,6 +19,9 @@ export const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const lastEventRef = useRef<string | null>(null);
+
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -27,11 +38,51 @@ export const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const notifications = [
-    { id: 1, text: "Jane Smith mentioned you in TKT-104", time: "2 min ago", unread: true },
-    { id: 2, text: "You were assigned to TKT-124: Update DB schema", time: "1 hour ago", unread: true },
-    { id: 3, text: "Project Alpha deployment succeeded", time: "3 hours ago", unread: false },
-  ];
+  useEffect(() => {
+    let active = true;
+    let unsubscribeSSE: (() => void) | undefined;
+    
+    async function setupSSE() {
+      const cleanup = await ticketsAPI.listenToTicketEvents((ev) => {
+        if (!active) return;
+        const eventId = `${ev.type}-${ev.data?.id}-${Date.now()}`;
+        if (lastEventRef.current === eventId) return;
+        lastEventRef.current = eventId;
+
+        let text = '';
+        if (ev.type === 'ticket-created') text = `New ticket created: ${ev.data.title}`;
+        else if (ev.type === 'ticket-updated') text = `Ticket TKT-${ev.data.id.substring(0,4)} was updated`;
+        else if (ev.type === 'ticket-deleted') text = `Ticket TKT-${ev.data.id.substring(0,4)} was deleted`;
+        else return;
+
+        const newNotif: Notification = {
+          id: eventId,
+          text,
+          time: 'Just now',
+          unread: true
+        };
+
+        setNotifications(prev => [newNotif, ...prev].slice(0, 10)); // keep last 10
+      });
+      if (!active) {
+        if (cleanup) cleanup();
+        return;
+      }
+      if (cleanup) unsubscribeSSE = cleanup;
+    }
+    setupSSE();
+
+    return () => {
+      active = false;
+      if (unsubscribeSSE) unsubscribeSSE();
+    };
+  }, []);
+
+  const unreadCount = notifications.filter(n => n.unread).length;
+
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+  };
 
   const profileName = user?.displayName ?? user?.username ?? 'User';
   const profileEmail = user?.email ?? 'user@example.com';
@@ -78,29 +129,39 @@ export const Header = () => {
             className="text-gray-500 hover:text-blue-600 relative transition-colors focus:outline-none"
           >
             <Bell className="w-5 h-5" />
-            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-white bg-red-500"></span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
 
           {isNotificationOpen && (
             <div className="absolute right-0 mt-4 w-80 bg-white rounded-xl shadow-xl border border-gray-100 py-2 origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-50">
               <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-xl">
                 <p className="text-sm font-bold text-gray-900">Notifications</p>
-                <button className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Mark all read
-                </button>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Mark all read
+                  </button>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {notifications.map((notif) => (
-                  <div key={notif.id} className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${notif.unread ? 'bg-blue-50/30' : ''}`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notif.unread ? 'bg-blue-600' : 'bg-transparent'}`}></div>
-                      <div>
-                        <p className={`text-sm ${notif.unread ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{notif.text}</p>
-                        <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500 text-sm">No new notifications</div>
+                ) : (
+                  notifications.map((notif) => (
+                    <div key={notif.id} className={`px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${notif.unread ? 'bg-blue-50/30' : ''}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notif.unread ? 'bg-blue-600' : 'bg-transparent'}`}></div>
+                        <div>
+                          <p className={`text-sm ${notif.unread ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{notif.text}</p>
+                          <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <div className="p-3 text-center border-t border-gray-100">
                 <button className="text-sm text-blue-600 font-semibold hover:underline">View all activity</button>
@@ -161,3 +222,4 @@ export const Header = () => {
     </header>
   );
 };
+
