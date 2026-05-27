@@ -1,17 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-// import {
-//   randEmail,
-//   randFilePath,
-//   randFullName,
-//   randJobTitle,
-//   randNumber,
-//   randPassword,
-//   randUserName,
-// } from '@ngneat/falso';
 import { randomBytes, scryptSync } from 'crypto';
 import { RoleScope } from '../../generated/prisma/enums';
 import { DatabaseService } from '../database/database.service';
-import { Project, TicketStatus } from '../../generated/prisma/client';
+import { Project, type TicketStatus } from '../../generated/prisma/client';
 
 const permissions = [
   { key: 'assign_ticket', description: 'Assign tickets to users' },
@@ -85,9 +76,7 @@ export class TicketSeederService {
       });
     }
 
-    for (const [roleName, permissionKeys] of Object.entries(
-      rolePermissionMap,
-    )) {
+    for (const [roleName, permissionKeys] of Object.entries(rolePermissionMap)) {
       const roleKey = `${roleName}:${RoleScope.GLOBAL}`;
       const role = roleMap.get(roleKey);
       if (!role) {
@@ -237,7 +226,6 @@ export class TicketSeederService {
       'QA Tester',
       'Project Manager',
     ];
-    // passwordHash is the same as the admin
 
     for (let i = 0; i < userEmails.length; i++) {
       const user = await this.databaseService.user.upsert({
@@ -305,37 +293,24 @@ export class TicketSeederService {
 
     // Seed ticket statuses
     const statusData = [
-      {
-        name: 'To Do',
-        slug: 'to-do',
-        color: '#808080',
-        order: 0,
-        isDefault: true,
-      },
+      { name: 'To Do', slug: 'to-do', color: '#808080', order: 0, isDefault: true },
       { name: 'In Progress', slug: 'in-progress', color: '#0066cc', order: 1 },
       { name: 'In Review', slug: 'in-review', color: '#ff9900', order: 2 },
       { name: 'Done', slug: 'done', color: '#00cc00', order: 3 },
     ];
 
     const statuses: TicketStatus[] = [];
-    for (const project of projects) {
-      for (const status of statusData) {
-        const ticketStatus = await this.databaseService.ticketStatus.upsert({
-          where: {
-            projectId_name: {
-              projectId: project.id,
-              name: status.name,
-            },
-          },
-          update: status,
-          create: { ...status, projectId: project.id },
-        });
-        statuses.push(ticketStatus);
-      }
+    for (const statusDto of statusData) {
+      const status = await this.databaseService.ticketStatus.upsert({
+        where: { slug: statusDto.slug },
+        update: statusDto,
+        create: { ...statusDto, projectId: projects[0].id },
+      });
+      statuses.push(status);
     }
 
     // Seed tickets
-    if (projects[0] && statuses.length > 0) {
+    if (projects[0]) {
       const ticketData = [
         {
           title: 'Setup authentication',

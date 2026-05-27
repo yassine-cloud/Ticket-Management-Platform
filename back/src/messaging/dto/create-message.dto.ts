@@ -3,17 +3,15 @@ import {
   IsUUID,
   IsArray,
   IsOptional,
-  IsNotEmpty,
 } from 'class-validator';
 
 export class CreateMessageDTO {
-  @IsNotEmpty()
   @IsUUID()
   channelId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  content: string;
+  content?: string;
 
   @IsArray()
   @IsOptional()

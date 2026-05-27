@@ -11,9 +11,9 @@ export async function POST(request: NextRequest) {
   const response = await fetch(`${backendUrls.rest}/messages/upload-signature`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${accessToken}`
+      Authorization: `Bearer ${accessToken}`,
     },
-    cache: 'no-store'
+    cache: 'no-store',
   });
 
   const data = await readBackendResponseBody(response);

@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -22,8 +23,8 @@ export class ProjectsController {
 
   @Post()
   @Permissions('manage_roles')
-  create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  create(@Body() createProjectDto: CreateProjectDto, @Req() req: any) {
+    return this.projectsService.create(createProjectDto, req.user.id);
   }
 
   @Get()

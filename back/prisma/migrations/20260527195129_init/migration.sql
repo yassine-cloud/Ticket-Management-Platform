@@ -8,6 +8,9 @@ CREATE TYPE "ProjectRole" AS ENUM ('OWNER', 'ADMIN', 'MANAGER', 'DEVELOPER', 'QA
 CREATE TYPE "TicketType" AS ENUM ('BUG', 'FEATURE', 'TASK', 'EPIC', 'INCIDENT', 'SECURITY');
 
 -- CreateEnum
+CREATE TYPE "TicketStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
+
+-- CreateEnum
 CREATE TYPE "TicketPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL');
 
 -- CreateEnum
@@ -52,6 +55,7 @@ CREATE TABLE "Project" (
     "settings" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "statuses" "TicketStatus"[],
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
 );
@@ -108,21 +112,6 @@ CREATE TABLE "RoleAssignment" (
 );
 
 -- CreateTable
-CREATE TABLE "TicketStatus" (
-    "id" TEXT NOT NULL,
-    "projectId" TEXT,
-    "name" TEXT NOT NULL,
-    "slug" TEXT,
-    "color" TEXT,
-    "order" INTEGER NOT NULL DEFAULT 0,
-    "isDefault" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "TicketStatus_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Ticket" (
     "id" TEXT NOT NULL,
     "key" TEXT,
@@ -130,7 +119,7 @@ CREATE TABLE "Ticket" (
     "type" "TicketType" NOT NULL DEFAULT 'TASK',
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "statusId" TEXT NOT NULL,
+    "status" "TicketStatus" NOT NULL DEFAULT 'OPEN',
     "priority" "TicketPriority" NOT NULL DEFAULT 'MEDIUM',
     "reporterId" TEXT NOT NULL,
     "assigneeId" TEXT,
@@ -388,16 +377,10 @@ CREATE INDEX "RoleAssignment_projectId_idx" ON "RoleAssignment"("projectId");
 CREATE UNIQUE INDEX "RoleAssignment_userId_roleId_projectId_key" ON "RoleAssignment"("userId", "roleId", "projectId");
 
 -- CreateIndex
-CREATE INDEX "TicketStatus_projectId_order_idx" ON "TicketStatus"("projectId", "order");
-
--- CreateIndex
-CREATE UNIQUE INDEX "TicketStatus_projectId_name_key" ON "TicketStatus"("projectId", "name");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Ticket_key_key" ON "Ticket"("key");
 
 -- CreateIndex
-CREATE INDEX "Ticket_projectId_statusId_idx" ON "Ticket"("projectId", "statusId");
+CREATE INDEX "Ticket_projectId_status_idx" ON "Ticket"("projectId", "status");
 
 -- CreateIndex
 CREATE INDEX "Ticket_assigneeId_idx" ON "Ticket"("assigneeId");
@@ -502,13 +485,7 @@ ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_roleId_fkey" FOREIGN
 ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TicketStatus" ADD CONSTRAINT "TicketStatus_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_statusId_fkey" FOREIGN KEY ("statusId") REFERENCES "TicketStatus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

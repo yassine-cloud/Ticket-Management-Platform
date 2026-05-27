@@ -38,6 +38,13 @@ enum TicketType {
   SECURITY
 }
 
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 enum TicketPriority {
   LOW
   MEDIUM
@@ -196,24 +203,6 @@ model RoleAssignment {
   @@index([projectId])
 }
 
-model TicketStatus {
-  id        String   @id @default(uuid())
-  projectId String?
-  name      String
-  slug      String?
-  color     String?
-  order     Int      @default(0)
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tickets Ticket[]
-
-  @@unique([projectId, name])
-  @@index([projectId, order])
-}
-
 model Ticket {
   id              String         @id @default(uuid())
   key             String?        @unique
@@ -221,7 +210,7 @@ model Ticket {
   type            TicketType     @default(TASK)
   title           String
   description     String?
-  statusId        String
+  status          TicketStatus   @default(OPEN)
   priority        TicketPriority @default(MEDIUM)
   reporterId      String
   assigneeId      String?
@@ -234,7 +223,6 @@ model Ticket {
   closedAt        DateTime?
 
   project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  status    TicketStatus @relation(fields: [statusId], references: [id])
   reporter  User         @relation("TicketReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   assignee  User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   parent    Ticket?      @relation("TicketParent", fields: [parentId], references: [id])
@@ -248,7 +236,7 @@ model Ticket {
   activities TicketActivity[]
   channels  Channel[]
 
-  @@index([projectId, statusId])
+  @@index([projectId, status])
   @@index([assigneeId])
   @@index([reporterId])
 }

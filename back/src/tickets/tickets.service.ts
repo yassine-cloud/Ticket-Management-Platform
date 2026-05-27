@@ -25,7 +25,6 @@ export class TicketsService {
     return this.prisma.ticket.findMany({
       where: projectId ? { projectId } : undefined,
       include: {
-        status: true,
         parent: true,
         labels: {
           include: { label: true },
@@ -39,7 +38,6 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
-        status: true,
         parent: true,
         labels: {
           include: { label: true },
