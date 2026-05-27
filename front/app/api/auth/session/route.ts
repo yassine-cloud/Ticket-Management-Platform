@@ -49,12 +49,14 @@ export async function GET(request: NextRequest) {
     const permissions = await checkAccess(accessToken);
     if (permissions.ok) {
       return NextResponse.json({
-        user: { id: permissions.data?.userId ?? undefined }
+        user: { id: permissions.data?.userId ?? undefined },
+        accessToken,
+        refreshToken
       });
     }
 
     if (permissions.status && permissions.status !== 401) {
-      return NextResponse.json({ user: { id: undefined } });
+      return NextResponse.json({ user: { id: undefined }, accessToken: null, refreshToken: null });
     }
   }
 
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
     return response;
   }
 
-  const response = NextResponse.json({ user: { id: undefined } });
+  const response = NextResponse.json({ user: { id: undefined }, accessToken: null, refreshToken: null });
   setAuthCookies(response, refreshed.accessToken, refreshed.refreshToken);
   return response;
 }

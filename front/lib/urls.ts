@@ -24,5 +24,12 @@ export const backendUrls = {
     logout: `${restBase}/auth/logout`,
     register: `${restBase}/auth/register`,
     permissionsCheck: `${restBase}/auth/permissions-check`
+  },
+  projects: {
+    list: `${restBase}/projects`,
+    create: `${restBase}/projects`,
+    getById: (id: string) => `${restBase}/projects/${id}`,
+    update: (id: string) => `${restBase}/projects/${id}`,
+    delete: (id: string) => `${restBase}/projects/${id}`,
   }
 };
