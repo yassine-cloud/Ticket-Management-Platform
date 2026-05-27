@@ -12,42 +12,42 @@ import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('register')
-    register(@Body() dto: RegisterDto, @Req() request: Request) {
-        return this.authService.register(dto, this.getRequestContext(request));
-    }
+  @Post('register')
+  register(@Body() dto: RegisterDto, @Req() request: Request) {
+    return this.authService.register(dto, this.getRequestContext(request));
+  }
 
-    @Post('login')
-    login(@Body() dto: LoginDto, @Req() request: Request) {
-        return this.authService.login(dto, this.getRequestContext(request));
-    }
+  @Post('login')
+  login(@Body() dto: LoginDto, @Req() request: Request) {
+    return this.authService.login(dto, this.getRequestContext(request));
+  }
 
-    @Post('refresh')
-    refresh(@Body() dto: RefreshTokenDto, @Req() request: Request) {
-        return this.authService.refresh(dto, this.getRequestContext(request));
-    }
+  @Post('refresh')
+  refresh(@Body() dto: RefreshTokenDto, @Req() request: Request) {
+    return this.authService.refresh(dto, this.getRequestContext(request));
+  }
 
-    @Post('logout')
-    logout(@Body() dto: LogoutDto) {
-        return this.authService.logout(dto);
-    }
+  @Post('logout')
+  logout(@Body() dto: LogoutDto) {
+    return this.authService.logout(dto);
+  }
 
-    @Get('permissions-check')
-    @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @Permissions('assign_ticket')
-    permissionsCheck(@Req() request: AuthRequest) {
-        return { ok: true, userId: request.user?.id ?? null };
-    }
+  @Get('permissions-check')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('assign_ticket')
+  permissionsCheck(@Req() request: AuthRequest) {
+    return { ok: true, userId: request.user?.id ?? null };
+  }
 
-    private getRequestContext(request: Request) {
-        const forwarded = request.headers['x-forwarded-for'];
-        const ip = Array.isArray(forwarded)
-            ? forwarded[0]
-            : forwarded?.split(',')[0]?.trim() ?? request.ip;
-        const userAgent = request.headers['user-agent'] ?? null;
+  private getRequestContext(request: Request) {
+    const forwarded = request.headers['x-forwarded-for'];
+    const ip = Array.isArray(forwarded)
+      ? forwarded[0]
+      : (forwarded?.split(',')[0]?.trim() ?? request.ip);
+    const userAgent = request.headers['user-agent'] ?? null;
 
-        return { ip, userAgent };
-    }
+    return { ip, userAgent };
+  }
 }

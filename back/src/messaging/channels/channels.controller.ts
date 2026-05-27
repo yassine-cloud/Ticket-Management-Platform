@@ -142,10 +142,7 @@ export class ChannelsController {
    * GET /channels/:channelId/members
    */
   @Get(':channelId/members')
-  async getMembers(
-    @Param('channelId') channelId: string,
-    @Req() req: any,
-  ) {
+  async getMembers(@Param('channelId') channelId: string, @Req() req: any) {
     const userId = req.user.id;
     return this.channelsService.getChannelMembers(channelId, userId);
   }

@@ -13,23 +13,23 @@ describe('AuthService', () => {
 
   const databaseService = {
     user: {
-      findUnique: jest.fn()
+      findUnique: jest.fn(),
     },
     session: {
       create: jest.fn(),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
-      update: jest.fn()
-    }
+      update: jest.fn(),
+    },
   };
 
   const jwtService = {
     sign: jest.fn(),
-    verify: jest.fn()
+    verify: jest.fn(),
   };
 
   const configService = {
-    get: jest.fn()
+    get: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -40,8 +40,8 @@ describe('AuthService', () => {
         AuthService,
         { provide: DatabaseService, useValue: databaseService },
         { provide: JwtService, useValue: jwtService },
-        { provide: ConfigService, useValue: configService }
-      ]
+        { provide: ConfigService, useValue: configService },
+      ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -58,15 +58,17 @@ describe('AuthService', () => {
       username: 'admin',
       displayName: 'Admin',
       passwordHash,
-      isActive: true
+      isActive: true,
     });
-    jwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
+    jwtService.sign
+      .mockReturnValueOnce('access-token')
+      .mockReturnValueOnce('refresh-token');
     databaseService.session.findFirst.mockResolvedValue(null);
     databaseService.session.create.mockResolvedValue({ id: 'session-1' });
 
     const result = await service.login(
       { email: 'admin@example.com', password: 'Admin123!' },
-      { ip: '127.0.0.1', userAgent: 'jest' }
+      { ip: '127.0.0.1', userAgent: 'jest' },
     );
 
     expect(result.accessToken).toBe('access-token');
@@ -80,14 +82,16 @@ describe('AuthService', () => {
       id: 'session-1',
       userId: 'user-1',
       refreshTokenId: 'refresh-1',
-      revokedAt: null
+      revokedAt: null,
     });
     databaseService.session.update.mockResolvedValue({ id: 'session-1' });
-    jwtService.sign.mockReturnValueOnce('access-2').mockReturnValueOnce('refresh-2');
+    jwtService.sign
+      .mockReturnValueOnce('access-2')
+      .mockReturnValueOnce('refresh-2');
 
     const result = await service.refresh(
       { refreshToken: 'refresh-token' },
-      { ip: '127.0.0.1', userAgent: 'jest' }
+      { ip: '127.0.0.1', userAgent: 'jest' },
     );
 
     expect(databaseService.session.update).toHaveBeenCalledTimes(1);
@@ -101,11 +105,11 @@ describe('AuthService', () => {
       id: 'session-1',
       userId: 'user-1',
       refreshTokenId: 'refresh-1',
-      revokedAt: new Date()
+      revokedAt: new Date(),
     });
 
     await expect(
-      service.refresh({ refreshToken: 'refresh-token' })
+      service.refresh({ refreshToken: 'refresh-token' }),
     ).rejects.toThrow(UnauthorizedException);
   });
 });
