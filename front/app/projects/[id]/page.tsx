@@ -1,13 +1,16 @@
-import React from 'react';
+'use client';
+
 import { BaseLayout } from '@/components/layout/BaseLayout';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
-export default function ProjectDetailsPage({ params }: { params: { id: string } }) {
+export default function ProjectDetailsPage( ) {
+  const params = useParams()
   return (
     <BaseLayout>
       <div className="mb-6">
         <Link href="/projects" className="text-sm text-blue-600 hover:underline mb-2 inline-block">&larr; Back to Projects</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Project {params.id}</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Project Details</h1>
       </div>
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Board / Kanban View</h2>

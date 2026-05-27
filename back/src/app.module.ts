@@ -6,12 +6,21 @@ import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MessagingModule } from './messaging/messaging.module';
 import { FilesModule } from './files/files.module';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
+import { ProjectsModule } from './projects/projects.module';
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: true,
+      context: ({ req }) => ({ req }),
+    }),
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.'
@@ -21,6 +30,7 @@ import { AuthModule } from './auth/auth.module';
     TicketsModule,
     MessagingModule,
     FilesModule,
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
