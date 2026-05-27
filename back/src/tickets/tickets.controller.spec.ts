@@ -42,10 +42,10 @@ describe('TicketsController', () => {
     it('should map ticket creation events to SSE MessageEvent format', async () => {
       // 1. Get the observable from the controller
       const sse$ = controller.sse();
-      
+
       // 2. Prepare dummy data
       const mockTicket = { id: '123', title: 'New Ticket' };
-      
+
       // 3. Create a promise that waits for the FIRST emitted value on the observable
       const firstEventPromise = firstValueFrom(sse$);
 

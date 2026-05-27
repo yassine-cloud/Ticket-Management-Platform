@@ -11,7 +11,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
-
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { ProjectsModule } from './projects/projects.module';
     }),
     EventEmitterModule.forRoot({
       wildcard: true,
-      delimiter: '.'
+      delimiter: '.',
     }),
     DatabaseModule,
     AuthModule,
@@ -31,6 +31,7 @@ import { ProjectsModule } from './projects/projects.module';
     MessagingModule,
     FilesModule,
     ProjectsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

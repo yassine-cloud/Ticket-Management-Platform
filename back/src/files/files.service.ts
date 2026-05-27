@@ -2,7 +2,11 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { DatabaseService } from '../database/database.service';
-import { PresignUploadDto, PresignResponse, FileMetadataDto } from './dto/presign-upload.dto';
+import {
+  PresignUploadDto,
+  PresignResponse,
+  FileMetadataDto,
+} from './dto/presign-upload.dto';
 
 @Injectable()
 export class FilesService {
@@ -14,9 +18,11 @@ export class FilesService {
     private configService: ConfigService,
     private prisma: DatabaseService,
   ) {
-    this.cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME')??'';
-    this.apiKey = this.configService.get<string>('CLOUDINARY_API_KEY')??'';
-    this.apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET')??'';
+    this.cloudName =
+      this.configService.get<string>('CLOUDINARY_CLOUD_NAME') ?? '';
+    this.apiKey = this.configService.get<string>('CLOUDINARY_API_KEY') ?? '';
+    this.apiSecret =
+      this.configService.get<string>('CLOUDINARY_API_SECRET') ?? '';
 
     if (!this.cloudName || !this.apiKey || !this.apiSecret) {
       throw new Error('Cloudinary credentials not configured in environment');
@@ -33,7 +39,10 @@ export class FilesService {
 
     // Generate signature for Cloudinary
     const signatureString = `folder=${folder}&timestamp=${timestamp}${this.apiSecret}`;
-    const signature = crypto.createHash('sha1').update(signatureString).digest('hex');
+    const signature = crypto
+      .createHash('sha1')
+      .update(signatureString)
+      .digest('hex');
 
     // Generate upload token for tracking
     const uploadToken = crypto.randomBytes(32).toString('hex');
@@ -56,7 +65,15 @@ export class FilesService {
   async storeFileMetadata(
     fileMetadata: FileMetadataDto,
   ): Promise<Record<string, any>> {
-    const { ticketId, commentId, messageId, uploaderId, filename, mimeType, size } = fileMetadata;
+    const {
+      ticketId,
+      commentId,
+      messageId,
+      uploaderId,
+      filename,
+      mimeType,
+      size,
+    } = fileMetadata;
 
     // Validate that at least one parent entity is specified
     if (!ticketId && !commentId && !messageId) {

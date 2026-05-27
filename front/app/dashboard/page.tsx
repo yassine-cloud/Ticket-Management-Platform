@@ -1,14 +1,108 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BaseLayout } from '@/components/layout/BaseLayout';
-import { Ticket, Users, CheckCircle, Clock } from 'lucide-react';
+import { Ticket, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
+
+type AnalyticsSummary = {
+  counts: {
+    total: number;
+    open: number;
+    closed: number;
+  };
+  averageResponseTime: {
+    averageMinutes: number | null;
+    sampleSize: number;
+  };
+  slaBreaches: {
+    breaches: number;
+    evaluatedTickets: number;
+    responseTimeMinutes: number | null;
+  };
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const displayName = user?.displayName ?? user?.username ?? 'there';
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadAnalytics = async () => {
+      try {
+        const response = await fetch('/api/analytics/summary', { cache: 'no-store' });
+        if (!response.ok) {
+          const body = (await response.json().catch(() => ({}))) as { message?: string };
+          throw new Error(body.message ?? 'Failed to load analytics');
+        }
+
+        const data = (await response.json()) as AnalyticsSummary;
+        if (isActive) {
+          setAnalytics(data);
+          setAnalyticsError(null);
+        }
+      } catch (error) {
+        if (isActive) {
+          setAnalyticsError(error instanceof Error ? error.message : 'Failed to load analytics');
+        }
+      }
+    };
+
+    loadAnalytics();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const counts = analytics?.counts;
+    const avgMinutes = analytics?.averageResponseTime?.averageMinutes ?? null;
+    const avgHours = avgMinutes === null ? '—' : `${(avgMinutes / 60).toFixed(1)}h`;
+    const breaches = analytics?.slaBreaches?.breaches ?? 0;
+
+    return [
+      {
+        label: 'Open Tickets',
+        value: counts ? String(counts.open) : '—',
+        icon: Ticket,
+        trend: analyticsError ? 'Unavailable' : 'Live',
+        trendUp: !analyticsError,
+        color: 'text-blue-600',
+        bg: 'bg-blue-100'
+      },
+      {
+        label: 'Resolved Tickets',
+        value: counts ? String(counts.closed) : '—',
+        icon: CheckCircle,
+        trend: analyticsError ? 'Unavailable' : 'Live',
+        trendUp: !analyticsError,
+        color: 'text-green-600',
+        bg: 'bg-green-100'
+      },
+      {
+        label: 'Avg Response Time',
+        value: avgHours,
+        icon: Clock,
+        trend: analyticsError ? 'Unavailable' : 'Live',
+        trendUp: !analyticsError,
+        color: 'text-purple-600',
+        bg: 'bg-purple-100'
+      },
+      {
+        label: 'SLA Breaches',
+        value: analytics ? String(breaches) : '—',
+        icon: AlertTriangle,
+        trend: analyticsError ? 'Unavailable' : 'Live',
+        trendUp: analyticsError ? false : breaches === 0,
+        color: 'text-orange-600',
+        bg: 'bg-orange-100'
+      }
+    ];
+  }, [analytics, analyticsError]);
 
   return (
     <BaseLayout>
@@ -20,12 +114,7 @@ export default function DashboardPage() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { label: 'Open Tickets', value: '24', icon: Ticket, trend: '+12%', trendUp: false, color: 'text-blue-600', bg: 'bg-blue-100' },
-            { label: 'Resolved Tickets', value: '112', icon: CheckCircle, trend: '+8%', trendUp: true, color: 'text-green-600', bg: 'bg-green-100' },
-            { label: 'Avg Resolution Time', value: '4.2h', icon: Clock, trend: '-2%', trendUp: true, color: 'text-purple-600', bg: 'bg-purple-100' },
-            { label: 'Active Members', value: '8', icon: Users, trend: '0%', trendUp: true, color: 'text-orange-600', bg: 'bg-orange-100' },
-          ].map((stat, i) => (
+          {stats.map((stat, i) => (
             <div key={i} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
                 <div>

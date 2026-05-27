@@ -105,9 +105,7 @@ export class MessagesService {
 
     const isMember = channel.members.some((m) => m.userId === userId);
     if (!isMember) {
-      throw new ForbiddenException(
-        'You do not have access to this channel',
-      );
+      throw new ForbiddenException('You do not have access to this channel');
     }
 
     // Get total count
