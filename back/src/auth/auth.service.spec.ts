@@ -17,6 +17,7 @@ describe('AuthService', () => {
     },
     session: {
       create: jest.fn(),
+      findFirst: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn()
     }
@@ -60,6 +61,7 @@ describe('AuthService', () => {
       isActive: true
     });
     jwtService.sign.mockReturnValueOnce('access-token').mockReturnValueOnce('refresh-token');
+    databaseService.session.findFirst.mockResolvedValue(null);
     databaseService.session.create.mockResolvedValue({ id: 'session-1' });
 
     const result = await service.login(
@@ -81,7 +83,6 @@ describe('AuthService', () => {
       revokedAt: null
     });
     databaseService.session.update.mockResolvedValue({ id: 'session-1' });
-    databaseService.session.create.mockResolvedValue({ id: 'session-2' });
     jwtService.sign.mockReturnValueOnce('access-2').mockReturnValueOnce('refresh-2');
 
     const result = await service.refresh(
@@ -90,7 +91,7 @@ describe('AuthService', () => {
     );
 
     expect(databaseService.session.update).toHaveBeenCalledTimes(1);
-    expect(databaseService.session.create).toHaveBeenCalledTimes(1);
+    expect(databaseService.session.create).not.toHaveBeenCalled();
     expect(result.accessToken).toBe('access-2');
   });
 

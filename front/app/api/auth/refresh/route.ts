@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrls } from '@/lib/urls';
-import { getRefreshToken, setAuthCookies } from '../_utils';
+import { getRefreshToken, readBackendResponseBody, setAuthCookies } from '../_utils';
 
 type RefreshResponse = {
   accessToken: string;
@@ -21,11 +21,23 @@ export async function POST(request: NextRequest) {
   });
 
   if (!apiResponse.ok) {
-    const errorBody = await apiResponse.json().catch(() => ({}));
-    return NextResponse.json(errorBody, { status: apiResponse.status });
+    const errorBody = await readBackendResponseBody<Record<string, unknown>>(apiResponse);
+    return NextResponse.json(
+      typeof errorBody === 'string'
+        ? { message: errorBody }
+        : errorBody ?? { message: 'Token refresh failed' },
+      { status: apiResponse.status }
+    );
   }
 
-  const data = (await apiResponse.json()) as RefreshResponse;
+  const data = await readBackendResponseBody<RefreshResponse>(apiResponse);
+  if (!data || typeof data === 'string') {
+    return NextResponse.json(
+      { message: 'Unexpected response from backend during token refresh' },
+      { status: 502 }
+    );
+  }
+
   const response = NextResponse.json({ ok: true });
   setAuthCookies(response, data.accessToken, data.refreshToken);
 

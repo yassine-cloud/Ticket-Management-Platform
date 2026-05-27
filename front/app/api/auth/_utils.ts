@@ -13,7 +13,8 @@ const baseCookieOptions = {
 };
 
 export const getAccessToken = (request: NextRequest) =>
-  request.cookies.get(ACCESS_COOKIE)?.value;
+  request.cookies.get(ACCESS_COOKIE)?.value ??
+  request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
 
 export const getRefreshToken = (request: NextRequest) =>
   request.cookies.get(REFRESH_COOKIE)?.value;
@@ -42,4 +43,24 @@ export const clearAuthCookies = (response: NextResponse) => {
     ...baseCookieOptions,
     maxAge: 0
   });
+};
+
+export const readBackendResponseBody = async <T>(response: Response): Promise<T | string | null> => {
+  const rawBody = await response.text();
+  if (!rawBody) {
+    return null;
+  }
+
+  const contentType = response.headers.get('content-type') ?? '';
+  const looksJson = contentType.includes('application/json') || contentType.includes('+json');
+
+  if (looksJson) {
+    try {
+      return JSON.parse(rawBody) as T;
+    } catch {
+      return rawBody;
+    }
+  }
+
+  return rawBody;
 };

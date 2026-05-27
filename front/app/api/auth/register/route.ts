@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrls } from '@/lib/urls';
+import { readBackendResponseBody } from '../_utils';
 
 type RegisterResponse = {
   id: string;
@@ -19,10 +20,22 @@ export async function POST(request: NextRequest) {
   });
 
   if (!apiResponse.ok) {
-    const errorBody = await apiResponse.json().catch(() => ({}));
-    return NextResponse.json(errorBody, { status: apiResponse.status });
+    const errorBody = await readBackendResponseBody<Record<string, unknown>>(apiResponse);
+    return NextResponse.json(
+      typeof errorBody === 'string'
+        ? { message: errorBody }
+        : errorBody ?? { message: 'Registration failed' },
+      { status: apiResponse.status }
+    );
   }
 
-  const data = (await apiResponse.json()) as RegisterResponse;
+  const data = await readBackendResponseBody<RegisterResponse>(apiResponse);
+  if (!data || typeof data === 'string') {
+    return NextResponse.json(
+      { message: 'Unexpected response from backend during registration' },
+      { status: 502 }
+    );
+  }
+
   return NextResponse.json({ user: data });
 }

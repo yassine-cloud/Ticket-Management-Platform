@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, FolderKanban, Ticket, Users, Settings } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, Ticket, MessageSquare, Users, Settings } from 'lucide-react';
 
 export const Sidebar = () => {
   return (
@@ -17,6 +17,10 @@ export const Sidebar = () => {
         <Link href="/tickets" className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-md hover:bg-gray-100 font-medium">
           <Ticket className="w-5 h-5 text-gray-500" />
           Tickets
+        </Link>
+        <Link href="/messages" className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-md hover:bg-gray-100 font-medium">
+          <MessageSquare className="w-5 h-5 text-gray-500" />
+          Messages
         </Link>
         <Link href="/team" className="flex items-center gap-3 px-3 py-2 text-gray-700 rounded-md hover:bg-gray-100 font-medium">
           <Users className="w-5 h-5 text-gray-500" />

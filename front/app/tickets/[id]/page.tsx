@@ -2,14 +2,16 @@ import React from 'react';
 import { BaseLayout } from '@/components/layout/BaseLayout';
 import Link from 'next/link';
 
-export default function TicketDetailsPage({ params }: { params: { id: string } }) {
+export default async function TicketDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
   return (
     <BaseLayout>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <Link href="/tickets" className="text-sm text-blue-600 hover:underline mb-2 inline-block">&larr; Back to Tickets</Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">TKT-{params.id}00: Setup authentication</h1>
+            <h1 className="text-2xl font-bold text-gray-900">TKT-{id}00: Setup authentication</h1>
             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
               In Progress
             </span>

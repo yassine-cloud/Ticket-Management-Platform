@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrls } from '@/lib/urls';
-import { setAuthCookies } from '../_utils';
+import { readBackendResponseBody, setAuthCookies } from '../_utils';
 
 type LoginResponse = {
   accessToken: string;
@@ -24,12 +24,27 @@ export async function POST(request: NextRequest) {
   });
 
   if (!apiResponse.ok) {
-    const errorBody = await apiResponse.json().catch(() => ({}));
-    return NextResponse.json(errorBody, { status: apiResponse.status });
+    const errorBody = await readBackendResponseBody<Record<string, unknown>>(apiResponse);
+    return NextResponse.json(
+      typeof errorBody === 'string'
+        ? { message: errorBody }
+        : errorBody ?? { message: 'Login failed' },
+      { status: apiResponse.status }
+    );
   }
 
-  const data = (await apiResponse.json()) as LoginResponse;
-  const response = NextResponse.json({ user: data.user ?? null });
+  const data = await readBackendResponseBody<LoginResponse>(apiResponse);
+  if (!data || typeof data === 'string') {
+    return NextResponse.json(
+      { message: 'Unexpected response from backend during login' },
+      { status: 502 }
+    );
+  }
+
+  const response = NextResponse.json({
+    user: data.user ?? null,
+    accessToken: data.accessToken
+  });
   setAuthCookies(response, data.accessToken, data.refreshToken);
 
   return response;
