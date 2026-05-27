@@ -25,6 +25,11 @@ export const backendUrls = {
     register: `${restBase}/auth/register`,
     permissionsCheck: `${restBase}/auth/permissions-check`
   },
+  analytics: {
+    ticketCounts: `${restBase}/analytics/tickets/counts`,
+    averageResponseTime: `${restBase}/analytics/tickets/average-response-time`,
+    slaBreaches: `${restBase}/analytics/tickets/sla-breaches`
+  },
   projects: {
     list: `${restBase}/projects`,
     create: `${restBase}/projects`,

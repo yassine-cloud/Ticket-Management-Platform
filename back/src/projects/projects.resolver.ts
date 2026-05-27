@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, Context } from '@nestjs/graphql';
 import { ProjectsService } from './projects.service';
 import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -15,8 +15,11 @@ export class ProjectsResolver {
 
   @Mutation(() => Project)
   @Permissions('manage_roles')
-  createProject(@Args('createProjectDto') createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  createProject(
+    @Args('createProjectDto') createProjectDto: CreateProjectDto,
+    @Context('req') req: any,
+  ) {
+    return this.projectsService.create(createProjectDto, req.user.id);
   }
 
   @Query(() => [Project], { name: 'projects' })

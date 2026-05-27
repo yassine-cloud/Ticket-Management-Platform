@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateChannelDTO } from '../dto/create-channel.dto';
@@ -10,7 +15,7 @@ export class ChannelsService {
   constructor(
     private prisma: DatabaseService,
     private cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   /**
    * Create a new channel
@@ -20,6 +25,7 @@ export class ChannelsService {
     userId: string,
   ): Promise<ChannelResponseDTO> {
     // Verify user is member of project
+
     const projectMember = await this.prisma.projectMember.findUnique({
       where: {
         projectId_userId: {
@@ -28,8 +34,10 @@ export class ChannelsService {
         },
       },
     });
+    
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { roleAssignments: { include: { role: true } } } });
 
-    if (!projectMember) {
+    if (!projectMember && !user?.roleAssignments.some(ra => ['OWNER', 'ADMIN', 'Super Admin'].includes(ra.role.name))) {
       throw new ForbiddenException(
         'You must be a member of the project to create channels',
       );
@@ -39,7 +47,7 @@ export class ChannelsService {
       data: {
         projectId: dto.projectId,
         name: dto.name,
-        type: dto.type!,
+        type: dto.type,
         createdById: userId,
       },
       include: {
@@ -86,10 +94,10 @@ export class ChannelsService {
       },
     });
 
-    if (!projectMember) {
-      throw new ForbiddenException(
-        'You do not have access to this project',
-      );
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { roleAssignments: { include: { role: true } } } });
+
+    if (!projectMember && !user?.roleAssignments.some(ra => ['OWNER', 'ADMIN', 'Super Admin'].includes(ra.role.name))) {
+      throw new ForbiddenException('You do not have access to this project');
     }
 
     const channels = await this.prisma.channel.findMany({
@@ -235,10 +243,7 @@ export class ChannelsService {
    * Soft delete channel (channel creator or project owner/admin can delete)
    * Deletes all Cloudinary files but preserves channel data for audit trail
    */
-  async deleteChannel(
-    channelId: string,
-    userId: string,
-  ): Promise<void> {
+  async deleteChannel(channelId: string, userId: string): Promise<void> {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
       include: {
@@ -268,7 +273,8 @@ export class ChannelsService {
       });
 
       isProjectAdmin =
-        projectMember != null && ['OWNER', 'ADMIN'].includes(projectMember.role);
+        projectMember != null &&
+        ['OWNER', 'ADMIN'].includes(projectMember.role);
     }
 
     // Allow deletion if channel creator OR project admin
@@ -344,9 +350,7 @@ export class ChannelsService {
       });
 
       if (!projectMember || !['OWNER', 'ADMIN'].includes(projectMember.role)) {
-        throw new ForbiddenException(
-          'Only project admin can restore channels',
-        );
+        throw new ForbiddenException('Only project admin can restore channels');
       }
     }
 
@@ -402,9 +406,7 @@ export class ChannelsService {
     });
 
     if (!requesterMember) {
-      throw new ForbiddenException(
-        'Only channel members can add new members',
-      );
+      throw new ForbiddenException('Only channel members can add new members');
     }
 
     // Check if user already in channel

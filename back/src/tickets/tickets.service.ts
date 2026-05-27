@@ -4,19 +4,20 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TICKET_EVENTS } from '../config/ticket-events.config';
+import { TicketEventPayload, TicketEvents } from '../webhooks/events/ticket.events';
+import { TicketStatus } from '../../generated/prisma/enums';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private readonly prisma: DatabaseService,
     private readonly eventEmitter: EventEmitter2,
-  ) {}
+  ) { }
 
   async create(createTicketDto: CreateTicketDto) {
     const ticket = await this.prisma.ticket.create({
       data: createTicketDto,
       include: {
-        status: true,
         parent: true,
         labels: {
           include: { label: true },
@@ -33,7 +34,7 @@ export class TicketsService {
     const skip = (page - 1) * limit;
     const where: any = {};
     if (projectId) where.projectId = projectId;
-    
+
     if (statusId) {
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(statusId)) {
         where.statusId = statusId;
@@ -100,7 +101,6 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
-        status: true,
         parent: true,
         labels: {
           include: { label: true },
@@ -117,7 +117,7 @@ export class TicketsService {
   }
 
   async update(id: string, updateTicketDto: UpdateTicketDto) {
-    await this.findOne(id); // Ensure exists
+    const old = await this.findOne(id); // Ensure exists
 
     const ticket = await this.prisma.ticket.update({
       where: { id },
@@ -133,6 +133,12 @@ export class TicketsService {
     });
 
     this.eventEmitter.emit(TICKET_EVENTS.UPDATED, ticket);
+    if (ticket.status === TicketStatus.RESOLVED && old.status !== TicketStatus.RESOLVED) {
+      this.eventEmitter.emit(TicketEvents.Resolved, ticket);
+    }
+    if (updateTicketDto.priority === 'CRITICAL' && old.priority !== 'CRITICAL' && ticket.status !== TicketStatus.RESOLVED) {
+      this.eventEmitter.emit(TicketEvents.CriticalCreated, ticket);
+    }
     return ticket;
   }
 

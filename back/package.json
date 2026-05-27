@@ -19,6 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:tickets": "npm run build && node scripts/run-ticket-seeder.cjs"
+    ,
+    "backfill:channels": "ts-node --transpile-only scripts/backfill-default-channels.ts"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

@@ -8,4 +8,5 @@ export const TICKET_EVENTS = {
   ATTACHMENT_ADDED: 'ticket.attachment_added',
 } as const;
 
-export type TicketEventType = typeof TICKET_EVENTS[keyof typeof TICKET_EVENTS];
+export type TicketEventType =
+  (typeof TICKET_EVENTS)[keyof typeof TICKET_EVENTS];

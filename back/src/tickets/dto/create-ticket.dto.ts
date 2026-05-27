@@ -7,7 +7,7 @@ import {
   IsUUID,
   IsDateString,
 } from 'class-validator';
-import { TicketType, TicketPriority } from '../../../generated/prisma/client';
+import { TicketType, TicketPriority, TicketStatus } from '../../../generated/prisma/client';
 import { InputType, Field, Int } from '@nestjs/graphql';
 
 @InputType()
@@ -37,10 +37,10 @@ export class CreateTicketDto {
   @IsOptional()
   priority?: TicketPriority;
 
-  @Field()
-  @IsUUID()
+  @Field(() => TicketStatus, { defaultValue: TicketStatus.OPEN })
+  @IsEnum(TicketStatus)
   @IsNotEmpty()
-  statusId!: string;
+  status?: TicketStatus;
 
   @Field()
   @IsUUID()
