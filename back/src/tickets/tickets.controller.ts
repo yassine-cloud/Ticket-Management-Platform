@@ -55,8 +55,23 @@ export class TicketsController {
 
   @Get()
   @Permissions('assign_ticket')
-  findAll(@Query('projectId') projectId?: string) {
-    return this.ticketsService.findAll(projectId);
+  findAll(
+    @Query('projectId') projectId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('statusId') statusId?: string,
+    @Query('priority') priority?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    return this.ticketsService.findAll(projectId, pageNum, limitNum, search, statusId, priority);
+  }
+
+  @Get('statuses')
+  @Permissions('assign_ticket')
+  findStatuses(@Query('projectId') projectId?: string) {
+    return this.ticketsService.findStatuses(projectId);
   }
 
   @Get(':id')
