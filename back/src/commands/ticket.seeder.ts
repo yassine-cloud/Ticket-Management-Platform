@@ -44,7 +44,7 @@ const rolePermissionMap: Record<string, string[]> = {
 export class TicketSeederService {
   private readonly logger = new Logger(TicketSeederService.name);
 
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService) { }
 
   hashPassword(password: string) {
     const salt = randomBytes(16).toString('hex');
@@ -334,6 +334,7 @@ export class TicketSeederService {
         });
         this.logger.debug(`Created ticket: ${ticket.title}`);
       }
+
     }
 
     this.logger.log(
