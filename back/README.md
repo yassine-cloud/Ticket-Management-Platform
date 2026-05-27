@@ -25,6 +25,12 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Features
+
+- **Messaging Module**: Real-time channels, messages, and Cloudinary file uploads
+- **File Upload System**: Presigned URLs for direct client-to-Cloudinary uploads with metadata tracking
+- See [MESSAGING_INTEGRATION.md](../MESSAGING_INTEGRATION.md) and [FILES_INTEGRATION.md](../FILES_INTEGRATION.md) for detailed API documentation
+
 ## Quick Start
 
 ### 1. Setup Environment

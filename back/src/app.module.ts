@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MessagingModule } from './messaging/messaging.module';
+import { FilesModule } from './files/files.module';
 
 
 @Module({
@@ -16,6 +17,7 @@ import { MessagingModule } from './messaging/messaging.module';
     }),
     DatabaseModule,
     MessagingModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
