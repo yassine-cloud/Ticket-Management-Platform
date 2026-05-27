@@ -14,16 +14,19 @@ export class ProjectsResolver {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Mutation(() => Project)
+  @Permissions('manage_roles')
   createProject(@Args('createProjectDto') createProjectDto: CreateProjectDto) {
     return this.projectsService.create(createProjectDto);
   }
 
   @Query(() => [Project], { name: 'projects' })
+  @Permissions('assign_ticket')
   findAll() {
     return this.projectsService.findAll();
   }
 
   @Query(() => Project, { name: 'project' })
+  @Permissions('assign_ticket')
   findOne(@Args('id', { type: () => ID }) id: string) {
     return this.projectsService.findOne(id);
   }

@@ -21,21 +21,25 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
+  @Permissions('manage_roles')
   create(@Body() createProjectDto: CreateProjectDto) {
     return this.projectsService.create(createProjectDto);
   }
 
   @Get()
+  @Permissions('assign_ticket')
   findAll() {
     return this.projectsService.findAll();
   }
 
   @Get(':id')
+  @Permissions('assign_ticket')
   findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);
   }
 
   @Patch(':id')
+  @Permissions('manage_roles')
   update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
     return this.projectsService.update(id, updateProjectDto);
   }

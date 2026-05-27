@@ -10,7 +10,7 @@ import { Injectable, Logger } from '@nestjs/common';
 // } from '@ngneat/falso';
 import { randomBytes, scryptSync } from 'crypto';
 
-import { RoleScope } from 'generated/prisma/client';
+import { Project, RoleScope, TicketStatus } from 'generated/prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 
 const permissions = [
@@ -172,6 +172,171 @@ export class TicketSeederService {
 
     this.logger.log(
       `Seed completed: permissions=${permissionMap.size}, roles=${roleMap.size}, admin=${adminUser.email}`
+    );
+
+    // Seed projects
+    const projectData = [
+      { name: 'Web Portal', slug: 'web-portal', description: 'Main web portal application' },
+      { name: 'Mobile App', slug: 'mobile-app', description: 'iOS and Android mobile application' },
+      { name: 'Backend API', slug: 'backend-api', description: 'Core REST API service' },
+    ];
+
+    const projects: Project[] = [];
+    for (const proj of projectData) {
+      const project = await this.databaseService.project.upsert({
+        where: { slug: proj.slug },
+        update: proj,
+        create: { ...proj, isPublic: true, isArchived: false },
+      });
+      projects.push(project);
+    }
+
+    // Seed additional users
+    const users = [adminUser];
+    const userEmails = ['dev1@example.com', 'dev2@example.com', 'qa1@example.com', 'manager@example.com'];
+    const usernames = ['developer1', 'developer2', 'qa_tester', 'project_manager'];
+    const displayNames = ['John Developer', 'Jane Developer', 'QA Tester', 'Project Manager'];
+    // passwordHash is the same as the admin
+
+
+    for (let i = 0; i < userEmails.length; i++) {
+      const user = await this.databaseService.user.upsert({
+        where: { email: userEmails[i] },
+        update: {
+          displayName: displayNames[i],
+          passwordHash: passwordHash,
+          isActive: true,
+          isEmailVerified: true,
+        },
+        create: {
+          email: userEmails[i],
+          username: usernames[i],
+          displayName: displayNames[i],
+          passwordHash: passwordHash,
+          isActive: true,
+          isEmailVerified: true,
+        },
+      });
+      users.push(user);
+    }
+
+    // Assign project roles to users
+    const developerRole = roleMap.get(`Developer:${RoleScope.PROJECT}`);
+    const qaRole = roleMap.get(`QA:${RoleScope.PROJECT}`);
+    const managerRole = roleMap.get(`Manager:${RoleScope.PROJECT}`);
+
+    if (developerRole && projects[0]) {
+      for (const user of users.slice(1, 3)) {
+        await this.databaseService.roleAssignment.upsert({
+          where: {
+            userId_roleId_projectId: {
+              userId: user.id,
+              roleId: developerRole.id,
+              projectId: projects[0].id,
+            },
+          },
+          update: {},
+          create: {
+            userId: user.id,
+            roleId: developerRole.id,
+            projectId: projects[0].id,
+          },
+        });
+      }
+    }
+
+    if (qaRole && projects[0]) {
+      await this.databaseService.roleAssignment.upsert({
+        where: {
+          userId_roleId_projectId: {
+            userId: users[3].id,
+            roleId: qaRole.id,
+            projectId: projects[0].id,
+          },
+        },
+        update: {},
+        create: {
+          userId: users[3].id,
+          roleId: qaRole.id,
+          projectId: projects[0].id,
+        },
+      });
+    }
+
+    // Seed ticket statuses
+    const statusData = [
+      { name: 'To Do', slug: 'to-do', color: '#808080', order: 0, isDefault: true },
+      { name: 'In Progress', slug: 'in-progress', color: '#0066cc', order: 1 },
+      { name: 'In Review', slug: 'in-review', color: '#ff9900', order: 2 },
+      { name: 'Done', slug: 'done', color: '#00cc00', order: 3 },
+    ];
+
+    const statuses: TicketStatus[] = [];
+    for (const project of projects) {
+      for (const status of statusData) {
+        const ticketStatus = await this.databaseService.ticketStatus.upsert({
+          where: {
+            projectId_name: {
+              projectId: project.id,
+              name: status.name,
+            },
+          },
+          update: status,
+          create: { ...status, projectId: project.id },
+        });
+        statuses.push(ticketStatus);
+      }
+    }
+
+    // Seed tickets
+    if (projects[0] && statuses.length > 0) {
+      const ticketData = [
+        {
+          title: 'Setup authentication',
+          description: 'Implement JWT-based authentication system',
+          type: 'TASK' as const,
+          priority: 'HIGH' as const,
+          estimateMinutes: 480,
+          storyPoints: 5,
+        },
+        {
+          title: 'Fix login bug on mobile',
+          description: 'Users unable to login on mobile devices',
+          type: 'BUG' as const,
+          priority: 'CRITICAL' as const,
+          estimateMinutes: 240,
+          storyPoints: 3,
+        },
+        {
+          title: 'Add dark mode support',
+          description: 'Implement dark theme for better UX',
+          type: 'FEATURE' as const,
+          priority: 'MEDIUM' as const,
+          estimateMinutes: 720,
+          storyPoints: 8,
+        },
+      ];
+
+      const defaultStatus = statuses.find(s => s.isDefault);
+      if (defaultStatus) {
+        for (let i = 0; i < ticketData.length; i++) {
+          const ticketDto = ticketData[i];
+          const ticket = await this.databaseService.ticket.create({
+            data: {
+              ...ticketDto,
+              projectId: projects[0].id,
+              statusId: defaultStatus.id,
+              reporterId: adminUser.id,
+              assigneeId: users[1]?.id || adminUser.id,
+            },
+          });
+          this.logger.debug(`Created ticket: ${ticket.title}`);
+        }
+      }
+    }
+
+    this.logger.log(
+      `Seed completed: projects=${projects.length}, users=${users.length}, tickets created`
     );
   }
 }
