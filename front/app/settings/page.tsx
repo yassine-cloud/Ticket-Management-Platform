@@ -1,8 +1,35 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useMemo, useState } from 'react';
 import { BaseLayout } from '@/components/layout/BaseLayout';
 import { Save } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const profileName = user?.displayName ?? user?.username ?? 'User';
+  const profileEmail = user?.email ?? 'user@example.com';
+  const initials = useMemo(
+    () =>
+      profileName
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase(),
+    [profileName]
+  );
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  useEffect(() => {
+    const parts = profileName.split(' ').filter(Boolean);
+    const nextFirst = parts.shift() ?? '';
+    setFirstName(nextFirst);
+    setLastName(parts.join(' '));
+  }, [profileName]);
+
   return (
     <BaseLayout>
       <div className="max-w-4xl mx-auto space-y-8">
@@ -18,7 +45,9 @@ export default function SettingsPage() {
           </div>
           <div className="p-8 space-y-6">
             <div className="flex items-center gap-6">
-              <div className="h-20 w-20 bg-gradient-to-tr from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner">JD</div>
+              <div className="h-20 w-20 bg-gradient-to-tr from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-inner">
+                {initials}
+              </div>
               <div className="space-y-2">
                 <button className="bg-white hover:bg-gray-50 text-gray-800 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 shadow-sm transition-colors">
                   Change Avatar
@@ -30,16 +59,31 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700">First Name</label>
-                <input type="text" defaultValue="John" className="mt-2 block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" />
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  className="mt-2 block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700">Last Name</label>
-                <input type="text" defaultValue="Doe" className="mt-2 block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all" />
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  className="mt-2 block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+                />
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700">Email Address</label>
-              <input type="email" defaultValue="john.doe@example.com" disabled className="mt-2 block w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-500 px-4 py-3 text-sm shadow-sm cursor-not-allowed" />
+              <input
+                type="email"
+                value={profileEmail}
+                disabled
+                className="mt-2 block w-full rounded-xl border border-gray-200 bg-gray-50 text-gray-500 px-4 py-3 text-sm shadow-sm cursor-not-allowed"
+              />
               <p className="text-xs text-gray-500 mt-2">Email address cannot be changed directly. Contact an administrator.</p>
             </div>
           </div>
