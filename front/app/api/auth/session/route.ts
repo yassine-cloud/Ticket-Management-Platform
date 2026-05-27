@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendUrls } from '@/lib/urls';
-import { clearAuthCookies, getAccessToken, getRefreshToken, setAuthCookies } from '../_utils';
+import {
+  clearAuthCookies,
+  getAccessToken,
+  getRefreshToken,
+  readBackendResponseBody,
+  setAuthCookies
+} from '../_utils';
 
 type RefreshResponse = {
   accessToken: string;
@@ -20,7 +26,8 @@ const checkAccess = async (accessToken: string) => {
   });
 
   if (response.ok) {
-    return { ok: true, data: (await response.json()) as PermissionsResponse };
+    const data = await readBackendResponseBody<PermissionsResponse>(response);
+    return { ok: true, data: (data && typeof data !== 'string' ? data : null) as PermissionsResponse | null };
   }
 
   return { ok: false, status: response.status };
@@ -38,7 +45,12 @@ const refreshTokens = async (refreshToken: string) => {
     return null;
   }
 
-  return (await response.json()) as RefreshResponse;
+  const data = await readBackendResponseBody<RefreshResponse>(response);
+  if (!data || typeof data === 'string') {
+    return null;
+  }
+
+  return data;
 };
 
 export async function GET(request: NextRequest) {
