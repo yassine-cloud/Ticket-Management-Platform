@@ -26,6 +26,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const storageKey = 'ticketPlatform.user';
+const accessTokenKey = 'ticketPlatform.accessToken';
 
 const hasProfileData = (value?: AuthUser | null) =>
   Boolean(value?.username || value?.email || value?.displayName);
@@ -57,6 +58,27 @@ const writeStoredUser = (value: AuthUser | null) => {
   }
 
   window.localStorage.setItem(storageKey, JSON.stringify(value));
+};
+
+const readStoredAccessToken = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return window.localStorage.getItem(accessTokenKey);
+};
+
+const writeStoredAccessToken = (value: string | null) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (!value) {
+    window.localStorage.removeItem(accessTokenKey);
+    return;
+  }
+
+  window.localStorage.setItem(accessTokenKey, value);
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -102,25 +124,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
+        body: JSON.stringify(input),
+        credentials: 'include'
       });
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { message?: string };
         setStatus('unauthenticated');
         setUser(null);
+        writeStoredAccessToken(null);
         return { ok: false, message: data.message ?? 'Login failed' };
       }
 
-      const data = (await response.json()) as { user?: AuthUser };
+      const data = (await response.json()) as { user?: AuthUser; accessToken?: string };
       setUser(data.user ?? null);
       writeStoredUser(data.user ?? null);
+      writeStoredAccessToken(data.accessToken ?? null);
       setStatus('authenticated');
       return { ok: true };
     } catch {
       setStatus('unauthenticated');
       setUser(null);
       writeStoredUser(null);
+      writeStoredAccessToken(null);
       return { ok: false, message: 'Login failed' };
     }
   }, []);
@@ -132,6 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setStatus('unauthenticated');
       setUser(null);
       writeStoredUser(null);
+      writeStoredAccessToken(null);
     }
   }, []);
 
