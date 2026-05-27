@@ -12,7 +12,6 @@ import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -23,7 +22,7 @@ import { ProjectsModule } from './projects/projects.module';
     }),
     EventEmitterModule.forRoot({
       wildcard: true,
-      delimiter: '.'
+      delimiter: '.',
     }),
     DatabaseModule,
     AuthModule,

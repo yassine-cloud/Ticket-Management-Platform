@@ -7,6 +7,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 
 /**
@@ -108,10 +109,11 @@ export class MessagingGateway
   /**
    * Emit message.created event to channel
    */
-  emitMessageCreated(channelId: string, message: Record<string, any>) {
-    const room = `channel-${channelId}`;
+  @OnEvent('messaging.message.created')
+  emitMessageCreated(message: Record<string, any> & { channelId: string }) {
+    const room = `channel-${message.channelId}`;
     this.server.to(room).emit('message.created', {
-      channelId,
+      channelId: message.channelId,
       message,
       timestamp: new Date(),
     });
@@ -120,10 +122,11 @@ export class MessagingGateway
   /**
    * Emit message.updated event to channel
    */
-  emitMessageUpdated(channelId: string, message: Record<string, any>) {
-    const room = `channel-${channelId}`;
+  @OnEvent('messaging.message.updated')
+  emitMessageUpdated(message: Record<string, any> & { channelId: string }) {
+    const room = `channel-${message.channelId}`;
     this.server.to(room).emit('message.updated', {
-      channelId,
+      channelId: message.channelId,
       message,
       timestamp: new Date(),
     });
@@ -132,11 +135,12 @@ export class MessagingGateway
   /**
    * Emit message.deleted event to channel
    */
-  emitMessageDeleted(channelId: string, messageId: string) {
-    const room = `channel-${channelId}`;
+  @OnEvent('messaging.message.deleted')
+  emitMessageDeleted(event: { channelId: string; messageId: string }) {
+    const room = `channel-${event.channelId}`;
     this.server.to(room).emit('message.deleted', {
-      channelId,
-      messageId,
+      channelId: event.channelId,
+      messageId: event.messageId,
       timestamp: new Date(),
     });
   }
