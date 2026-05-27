@@ -15,7 +15,7 @@ export class ChannelsService {
   constructor(
     private prisma: DatabaseService,
     private cloudinaryService: CloudinaryService,
-  ) {}
+  ) { }
 
   /**
    * Create a new channel
@@ -25,6 +25,7 @@ export class ChannelsService {
     userId: string,
   ): Promise<ChannelResponseDTO> {
     // Verify user is member of project
+
     const projectMember = await this.prisma.projectMember.findUnique({
       where: {
         projectId_userId: {
@@ -33,8 +34,10 @@ export class ChannelsService {
         },
       },
     });
+    
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { roleAssignments: { include: { role: true } } } });
 
-    if (!projectMember) {
+    if (!projectMember && !user?.roleAssignments.some(ra => ['OWNER', 'ADMIN', 'Super Admin'].includes(ra.role.name))) {
       throw new ForbiddenException(
         'You must be a member of the project to create channels',
       );
@@ -91,7 +94,9 @@ export class ChannelsService {
       },
     });
 
-    if (!projectMember) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, include: { roleAssignments: { include: { role: true } } } });
+
+    if (!projectMember && !user?.roleAssignments.some(ra => ['OWNER', 'ADMIN', 'Super Admin'].includes(ra.role.name))) {
       throw new ForbiddenException('You do not have access to this project');
     }
 
