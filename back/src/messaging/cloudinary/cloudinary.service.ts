@@ -6,14 +6,14 @@ import { v2 as cloudinary } from 'cloudinary';
 export class CloudinaryService {
   constructor(private configService: ConfigService) {
     cloudinary.config({
-      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME') || '',
+      api_key: this.configService.get<string>('CLOUDINARY_API_KEY') || '',
+      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET') || '',
     });
   }
 
   async uploadFile(
-    file: Express.Multer.File,
+    file: { path: string },
     folder: string = 'ticket-management',
   ): Promise<{ url: string; publicId: string }> {
     try {
@@ -26,7 +26,7 @@ export class CloudinaryService {
         url: result.secure_url,
         publicId: result.public_id,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Cloudinary upload failed: ${error.message}`);
     }
   }
@@ -34,7 +34,7 @@ export class CloudinaryService {
   async deleteFile(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Cloudinary delete failed: ${error.message}`);
     }
   }
@@ -47,19 +47,20 @@ export class CloudinaryService {
     folder: string;
   }> {
     const timestamp = Math.floor(Date.now() / 1000);
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET') || '';
     const signature = cloudinary.utils.api_sign_request(
       {
         timestamp,
         folder,
       },
-      this.configService.get<string>('CLOUDINARY_API_SECRET'),
+      apiSecret,
     );
 
     return {
       signature,
       timestamp,
-      cloudName: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-      apiKey: this.configService.get<string>('CLOUDINARY_API_KEY'),
+      cloudName: this.configService.get<string>('CLOUDINARY_CLOUD_NAME') || '',
+      apiKey: this.configService.get<string>('CLOUDINARY_API_KEY') || '',
       folder,
     };
   }

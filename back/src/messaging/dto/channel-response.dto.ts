@@ -1,4 +1,4 @@
-import { ChannelType } from "generated/prisma/enums";
+import { ChannelType } from "../../../generated/prisma/enums";
 
 export class ChannelResponseDTO {
   id!: string;

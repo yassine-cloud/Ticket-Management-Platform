@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateChannelDTO } from '../dto/create-channel.dto';
@@ -284,10 +284,10 @@ export class ChannelsService {
         try {
           const publicId = this.extractPublicIdFromUrl(attachment.storagePath);
           await this.cloudinaryService.deleteFile(publicId);
-        } catch (error : any) {
+        } catch (error) {
           // Log error but don't fail the whole operation
           console.error(
-            `Failed to delete Cloudinary file ${attachment.storagePath}: ${error.message}`,
+            `Failed to delete Cloudinary file ${attachment.storagePath}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
         }
       }
@@ -418,7 +418,7 @@ export class ChannelsService {
     });
 
     if (existing) {
-      throw new Error('User is already a member of this channel');
+      throw new BadRequestException('User is already a member of this channel');
     }
 
     await this.prisma.channelMember.create({
@@ -540,8 +540,10 @@ export class ChannelsService {
       const publicIdWithExtension = parts.slice(vIndex + 1).join('/');
       // Remove file extension
       return publicIdWithExtension.split('.')[0];
-    } catch (error : any) {
-      throw new Error(`Failed to extract public ID from URL: ${error.message}`);
+    } catch (error) {
+      throw new Error(
+        `Failed to extract public ID from URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 }
