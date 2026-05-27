@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, scryptSync } from 'crypto';
 import { RoleScope } from '../../generated/prisma/enums';
 import { DatabaseService } from '../database/database.service';
-import { Project, type TicketStatus } from '../../generated/prisma/client';
+import { Project } from '../../generated/prisma/client';
 
 const permissions = [
   { key: 'assign_ticket', description: 'Assign tickets to users' },
@@ -44,7 +44,7 @@ const rolePermissionMap: Record<string, string[]> = {
 export class TicketSeederService {
   private readonly logger = new Logger(TicketSeederService.name);
 
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService) { }
 
   hashPassword(password: string) {
     const salt = randomBytes(16).toString('hex');
@@ -291,24 +291,6 @@ export class TicketSeederService {
       });
     }
 
-    // Seed ticket statuses
-    const statusData = [
-      { name: 'To Do', slug: 'to-do', color: '#808080', order: 0, isDefault: true },
-      { name: 'In Progress', slug: 'in-progress', color: '#0066cc', order: 1 },
-      { name: 'In Review', slug: 'in-review', color: '#ff9900', order: 2 },
-      { name: 'Done', slug: 'done', color: '#00cc00', order: 3 },
-    ];
-
-    const statuses: TicketStatus[] = [];
-    for (const statusDto of statusData) {
-      const status = await this.databaseService.ticketStatus.upsert({
-        where: { slug: statusDto.slug },
-        update: statusDto,
-        create: { ...statusDto, projectId: projects[0].id },
-      });
-      statuses.push(status);
-    }
-
     // Seed tickets
     if (projects[0]) {
       const ticketData = [
@@ -338,22 +320,19 @@ export class TicketSeederService {
         },
       ];
 
-      const defaultStatus = statuses.find((s) => s.isDefault);
-      if (defaultStatus) {
-        for (let i = 0; i < ticketData.length; i++) {
-          const ticketDto = ticketData[i];
-          const ticket = await this.databaseService.ticket.create({
-            data: {
-              ...ticketDto,
-              projectId: projects[0].id,
-              statusId: defaultStatus.id,
-              reporterId: adminUser.id,
-              assigneeId: users[1]?.id || adminUser.id,
-            },
-          });
-          this.logger.debug(`Created ticket: ${ticket.title}`);
-        }
+      for (let i = 0; i < ticketData.length; i++) {
+        const ticketDto = ticketData[i];
+        const ticket = await this.databaseService.ticket.create({
+          data: {
+            ...ticketDto,
+            projectId: projects[0].id,
+            reporterId: adminUser.id,
+            assigneeId: users[1]?.id || adminUser.id,
+          },
+        });
+        this.logger.debug(`Created ticket: ${ticket.title}`);
       }
+
     }
 
     this.logger.log(
