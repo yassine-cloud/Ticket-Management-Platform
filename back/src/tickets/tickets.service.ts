@@ -4,6 +4,8 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TICKET_EVENTS } from '../config/ticket-events.config';
+import { TicketEventPayload, TicketEvents } from '../webhooks/events/ticket.events';
+import { TicketStatus } from '../../generated/prisma/enums';
 
 @Injectable()
 export class TicketsService {
@@ -18,6 +20,10 @@ export class TicketsService {
     });
 
     this.eventEmitter.emit(TICKET_EVENTS.CREATED, ticket);
+    this.eventEmitter.emit(TicketEvents.Created, ticket);
+    if (ticket.priority === 'CRITICAL') {
+      this.eventEmitter.emit(TicketEvents.CriticalCreated, ticket);
+    }
     return ticket;
   }
 
@@ -62,6 +68,12 @@ export class TicketsService {
     });
 
     this.eventEmitter.emit(TICKET_EVENTS.UPDATED, ticket);
+    if (ticket.status === TicketStatus.RESOLVED) {
+      this.eventEmitter.emit(TicketEvents.Resolved, ticket);
+    }
+    if (updateTicketDto.priority === 'CRITICAL') {
+      this.eventEmitter.emit(TicketEvents.CriticalCreated, ticket);
+    }
     return ticket;
   }
 

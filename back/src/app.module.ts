@@ -11,6 +11,8 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TicketsModule } from './tickets/tickets.module';
 import { AuthModule } from './auth/auth.module';
 import { ProjectsModule } from './projects/projects.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { ProjectsModule } from './projects/projects.module';
     FilesModule,
     ProjectsModule,
     AnalyticsModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

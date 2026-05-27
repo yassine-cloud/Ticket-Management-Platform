@@ -1,9 +1,9 @@
 import { ObjectType, Field, ID, Int, registerEnumType } from '@nestjs/graphql';
-import { TicketType, TicketPriority } from '../../../generated/prisma/client';
+import { TicketType, TicketPriority, TicketStatus } from '../../../generated/prisma/client';
 
 registerEnumType(TicketType, { name: 'TicketType' });
 registerEnumType(TicketPriority, { name: 'TicketPriority' });
-
+registerEnumType(TicketStatus, { name: 'TicketStatus' });
 @ObjectType()
 export class Ticket {
   @Field(() => ID)
@@ -24,8 +24,8 @@ export class Ticket {
   @Field({ nullable: true })
   description?: string;
 
-  @Field()
-  statusId!: string;
+  @Field(() => TicketStatus)
+  status!: TicketStatus;
 
   @Field(() => TicketPriority)
   priority!: TicketPriority;
