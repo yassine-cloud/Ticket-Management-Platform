@@ -31,5 +31,13 @@ export const backendUrls = {
     getById: (id: string) => `${restBase}/projects/${id}`,
     update: (id: string) => `${restBase}/projects/${id}`,
     delete: (id: string) => `${restBase}/projects/${id}`,
+  },
+  tickets: {
+    list: `${restBase}/tickets`,
+    create: `${restBase}/tickets`,
+    statuses: `${restBase}/tickets/statuses`,
+    getById: (id: string) => `${restBase}/tickets/${id}`,
+    update: (id: string) => `${restBase}/tickets/${id}`,
+    delete: (id: string) => `${restBase}/tickets/${id}`,
   }
 };
