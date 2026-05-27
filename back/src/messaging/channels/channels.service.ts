@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatabaseService } from '../../database/database.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateChannelDTO } from '../dto/create-channel.dto';
@@ -39,7 +44,7 @@ export class ChannelsService {
       data: {
         projectId: dto.projectId,
         name: dto.name,
-        type: dto.type!,
+        type: dto.type,
         createdById: userId,
       },
       include: {
@@ -87,9 +92,7 @@ export class ChannelsService {
     });
 
     if (!projectMember) {
-      throw new ForbiddenException(
-        'You do not have access to this project',
-      );
+      throw new ForbiddenException('You do not have access to this project');
     }
 
     const channels = await this.prisma.channel.findMany({
@@ -235,10 +238,7 @@ export class ChannelsService {
    * Soft delete channel (channel creator or project owner/admin can delete)
    * Deletes all Cloudinary files but preserves channel data for audit trail
    */
-  async deleteChannel(
-    channelId: string,
-    userId: string,
-  ): Promise<void> {
+  async deleteChannel(channelId: string, userId: string): Promise<void> {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
       include: {
@@ -268,7 +268,8 @@ export class ChannelsService {
       });
 
       isProjectAdmin =
-        projectMember != null && ['OWNER', 'ADMIN'].includes(projectMember.role);
+        projectMember != null &&
+        ['OWNER', 'ADMIN'].includes(projectMember.role);
     }
 
     // Allow deletion if channel creator OR project admin
@@ -344,9 +345,7 @@ export class ChannelsService {
       });
 
       if (!projectMember || !['OWNER', 'ADMIN'].includes(projectMember.role)) {
-        throw new ForbiddenException(
-          'Only project admin can restore channels',
-        );
+        throw new ForbiddenException('Only project admin can restore channels');
       }
     }
 
@@ -402,9 +401,7 @@ export class ChannelsService {
     });
 
     if (!requesterMember) {
-      throw new ForbiddenException(
-        'Only channel members can add new members',
-      );
+      throw new ForbiddenException('Only channel members can add new members');
     }
 
     // Check if user already in channel
