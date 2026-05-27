@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DatabaseService } from '../../database/database.service';
 import { CreateMessageDTO } from '../dto/create-message.dto';
 import { UpdateMessageDTO } from '../dto/update-message.dto';
@@ -15,6 +16,7 @@ export class MessagesService {
   constructor(
     private prisma: DatabaseService,
     private cloudinaryService: CloudinaryService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -41,7 +43,10 @@ export class MessagesService {
       );
     }
 
-    if (!dto.content || dto.content.trim().length === 0) {
+    const hasAttachments = Boolean(dto.attachmentUrls?.length);
+    const normalizedContent = dto.content?.trim() ?? '';
+
+    if (!normalizedContent && !hasAttachments) {
       throw new BadRequestException('Message content cannot be empty');
     }
 
@@ -50,7 +55,7 @@ export class MessagesService {
       data: {
         channelId: dto.channelId,
         authorId: userId,
-        content: dto.content,
+        content: normalizedContent,
       },
       include: {
         author: {
@@ -81,7 +86,29 @@ export class MessagesService {
       }
     }
 
-    return this.formatMessageResponse(message);
+    const messageWithAttachments = await this.prisma.message.findUnique({
+      where: { id: message.id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            email: true,
+          },
+        },
+        attachments: true,
+      },
+    });
+
+    if (!messageWithAttachments) {
+      throw new NotFoundException('Message not found');
+    }
+
+    const formattedMessage = this.formatMessageResponse(messageWithAttachments);
+    this.eventEmitter.emit('messaging.message.created', formattedMessage);
+
+    return formattedMessage;
   }
 
   /**
@@ -227,7 +254,10 @@ export class MessagesService {
       },
     });
 
-    return this.formatMessageResponse(updated);
+    const formattedMessage = this.formatMessageResponse(updated);
+    this.eventEmitter.emit('messaging.message.updated', formattedMessage);
+
+    return formattedMessage;
   }
 
   /**
@@ -254,6 +284,11 @@ export class MessagesService {
       data: {
         isDeleted: true,
       },
+    });
+
+    this.eventEmitter.emit('messaging.message.deleted', {
+      channelId: msg.channelId,
+      messageId,
     });
 
     return { message: 'Message deleted successfully' };

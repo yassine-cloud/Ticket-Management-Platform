@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
@@ -14,12 +14,14 @@ import {
   Plus,
   RefreshCw,
   Send,
+  X,
   SquarePen,
   Users,
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { projectsAPI, type Project } from '@/lib/api/projects.api';
 import { backendUrls } from '@/lib/urls';
+import { io, type Socket } from 'socket.io-client';
 
 
 type ChannelSummary = {
@@ -55,6 +57,36 @@ type ProjectTreeItem = Project & {
   channelsLoaded: boolean;
   channelsLoading: boolean;
 };
+
+type LocalAttachmentDraft = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  isImage: boolean;
+};
+
+type UploadSignatureResponse = {
+  signature: string;
+  timestamp: number;
+  cloudName: string;
+  apiKey: string;
+  folder: string;
+};
+
+const formatFileSize = (size: number) => {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const isImageFile = (file: File) => file.type.startsWith('image/');
+
+const createDraftFromFile = (file: File): LocalAttachmentDraft => ({
+  id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+  file,
+  previewUrl: URL.createObjectURL(file),
+  isImage: isImageFile(file),
+});
 
 const formatTime = (value: string) =>
   new Intl.DateTimeFormat('en', {
@@ -102,10 +134,15 @@ export const MessagingWorkspace = () => {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateChannelFor, setShowCreateChannelFor] = useState<string | null>(null);
   const [newChannelName, setNewChannelName] = useState('');
   const [creatingChannel, setCreatingChannel] = useState(false);
+  const [attachmentDrafts, setAttachmentDrafts] = useState<LocalAttachmentDraft[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentDraftsRef = useRef<LocalAttachmentDraft[]>([]);
+  const socketRef = useRef<Socket | null>(null);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.id === selectedProjectId) ?? null,
@@ -122,11 +159,11 @@ export const MessagingWorkspace = () => {
     return window.localStorage.getItem('ticketPlatform.accessToken');
   };
 
-  const syncUrl = (nextProjectId?: string, nextChannelId?: string) => {
+  const syncUrl = useCallback((nextProjectId?: string, nextChannelId?: string) => {
     router.replace(buildMessagesUrl(nextProjectId, nextChannelId));
-  };
+  }, [router]);
 
-  const setProjectChannels = (projectId: string, channels: ChannelSummary[]) => {
+  const setProjectChannels = useCallback((projectId: string, channels: ChannelSummary[]) => {
     setProjects((current) =>
       current.map((project) =>
         project.id === projectId
@@ -139,9 +176,81 @@ export const MessagingWorkspace = () => {
           : project
       )
     );
+  }, []);
+
+  useEffect(() => {
+    attachmentDraftsRef.current = attachmentDrafts;
+  }, [attachmentDrafts]);
+
+  useEffect(() => {
+    return () => {
+      attachmentDraftsRef.current.forEach((draft) => URL.revokeObjectURL(draft.previewUrl));
+    };
+  }, []);
+
+  const handleAttachmentSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
+
+    setAttachmentDrafts((current) => [...current, ...files.map(createDraftFromFile)]);
+    event.target.value = '';
   };
 
-  const loadChannelsForProject = async (projectId: string) => {
+  const removeAttachmentDraft = (draftId: string) => {
+    setAttachmentDrafts((current) => {
+      const nextDrafts = current.filter((draft) => draft.id !== draftId);
+      const removed = current.find((draft) => draft.id === draftId);
+      if (removed) {
+        URL.revokeObjectURL(removed.previewUrl);
+      }
+      return nextDrafts;
+    });
+  };
+
+  const uploadAttachmentDrafts = async (): Promise<string[]> => {
+    if (attachmentDrafts.length === 0) return [];
+
+    const signatureResponse = await fetch('/api/messages/upload-signature', {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    const signatureData = (await signatureResponse.json().catch(() => ({}))) as Partial<UploadSignatureResponse> & {
+      message?: string;
+    };
+    if (!signatureResponse.ok) {
+      throw new Error(signatureData.message ?? 'Failed to prepare attachment upload');
+    }
+
+    const signature = signatureData as UploadSignatureResponse;
+
+    const uploads = await Promise.all(
+      attachmentDrafts.map(async (draft) => {
+        const formData = new FormData();
+        formData.append('file', draft.file);
+        formData.append('api_key', signature.apiKey);
+        formData.append('timestamp', String(signature.timestamp));
+        formData.append('signature', signature.signature);
+        formData.append('folder', signature.folder);
+
+        const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${signature.cloudName}/auto/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const cloudinaryData = await cloudinaryResponse.json().catch(() => ({}));
+        if (!cloudinaryResponse.ok) {
+          throw new Error(cloudinaryData.error?.message ?? `Failed to upload ${draft.file.name}`);
+        }
+
+        return String(cloudinaryData.secure_url ?? '');
+      })
+    );
+
+    return uploads.filter(Boolean);
+  };
+
+  const loadChannelsForProject = useCallback(async (projectId: string) => {
     if (!projectId) return [] as ChannelSummary[];
 
     const cachedProject = projects.find((project) => project.id === projectId);
@@ -174,7 +283,47 @@ export const MessagingWorkspace = () => {
       setProjectChannels(projectId, []);
       return [] as ChannelSummary[];
     }
-  };
+  }, [projects, setProjectChannels]);
+
+  const reloadMessages = useCallback(async () => {
+    if (!selectedChannelId) return;
+
+    setLoadingMessages(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/messages?channelId=${encodeURIComponent(selectedChannelId)}&limit=50&offset=0`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message ?? 'Failed to load messages');
+      }
+
+      setMessages(Array.isArray(data.messages) ? (data.messages as MessageItem[]) : []);
+      setMessageTotal(typeof data.total === 'number' ? data.total : 0);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load messages');
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [selectedChannelId]);
+
+  const upsertIncomingMessage = useCallback((incoming: MessageItem) => {
+    let inserted = false;
+    setMessages((current) => {
+      inserted = !current.some((message) => message.id === incoming.id);
+      const next = current.filter((message) => message.id !== incoming.id);
+      next.push(incoming);
+      next.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
+      return next;
+    });
+    if (inserted) {
+      setMessageTotal((current) => current + 1);
+    }
+  }, []);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -221,12 +370,10 @@ export const MessagingWorkspace = () => {
     return () => {
       mounted = false;
     };
-  }, [status]);
+  }, [status, normalizedProjectId, normalizedChannelId, syncUrl]);
 
   useEffect(() => {
     if (status !== 'authenticated' || !selectedProjectId) {
-      setMessages([]);
-      setMessageTotal(0);
       return;
     }
 
@@ -253,10 +400,6 @@ export const MessagingWorkspace = () => {
         syncUrl(selectedProjectId, nextChannelId);
       }
 
-      if (!nextChannelId) {
-        setMessages([]);
-        setMessageTotal(0);
-      }
     };
 
     void loadProjectContext();
@@ -264,43 +407,56 @@ export const MessagingWorkspace = () => {
     return () => {
       mounted = false;
     };
-  }, [selectedProjectId]);
+  }, [status, selectedProjectId, normalizedProjectId, normalizedChannelId, selectedChannelId, loadChannelsForProject, syncUrl]);
 
   useEffect(() => {
-    if (!selectedChannelId) {
-      setMessages([]);
-      setMessageTotal(0);
+    void reloadMessages();
+  }, [selectedChannelId, reloadMessages]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !selectedChannelId) {
       return;
     }
 
-    const loadMessages = async () => {
-      setLoadingMessages(true);
-      setError(null);
+    const socket = io(backendUrls.ws, {
+      transports: ['websocket'],
+      withCredentials: true,
+      auth: {
+        token: getAccessToken(),
+      },
+    });
 
-      try {
-        const response = await fetch(`/api/messages?channelId=${encodeURIComponent(selectedChannelId)}&limit=50&offset=0`, {
-          credentials: 'include',
-          cache: 'no-store',
-        });
+    socketRef.current = socket;
+    socket.emit('join-channel', { channelId: selectedChannelId, userId: '' });
 
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(data.message ?? 'Failed to load messages');
-        }
-
-        setMessages(Array.isArray(data.messages) ? (data.messages as MessageItem[]) : []);
-        setMessageTotal(typeof data.total === 'number' ? data.total : 0);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'Failed to load messages');
-        setMessages([]);
-        setMessageTotal(0);
-      } finally {
-        setLoadingMessages(false);
+    socket.on('message.created', (payload: { channelId: string; message: MessageItem }) => {
+      if (payload.channelId === selectedChannelId) {
+        upsertIncomingMessage(payload.message);
       }
-    };
+    });
 
-    void loadMessages();
-  }, [selectedChannelId]);
+    socket.on('message.updated', (payload: { channelId: string; message: MessageItem }) => {
+      if (payload.channelId === selectedChannelId) {
+        setMessages((current) => current.map((message) => (message.id === payload.message.id ? payload.message : message)));
+      }
+    });
+
+    socket.on('message.deleted', (payload: { channelId: string; messageId: string }) => {
+      if (payload.channelId === selectedChannelId) {
+        setMessages((current) => current.filter((message) => message.id !== payload.messageId));
+        setMessageTotal((current) => Math.max(0, current - 1));
+      }
+    });
+
+    return () => {
+      socket.emit('leave-channel', { channelId: selectedChannelId, userId: '' });
+      socket.off('message.created');
+      socket.off('message.updated');
+      socket.off('message.deleted');
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [selectedChannelId, status, upsertIncomingMessage]);
 
   const handleSelectProject = async (projectId: string) => {
     setSelectedProjectId(projectId);
@@ -320,30 +476,6 @@ export const MessagingWorkspace = () => {
     setSelectedProjectId(projectId);
     setSelectedChannelId(channelId);
     syncUrl(projectId, channelId);
-  };
-
-  const reloadMessages = async () => {
-    if (!selectedChannelId) return;
-
-    setLoadingMessages(true);
-    try {
-      const response = await fetch(`/api/messages?channelId=${encodeURIComponent(selectedChannelId)}&limit=50&offset=0`, {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message ?? 'Failed to load messages');
-      }
-
-      setMessages(Array.isArray(data.messages) ? (data.messages as MessageItem[]) : []);
-      setMessageTotal(typeof data.total === 'number' ? data.total : 0);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Failed to load messages');
-    } finally {
-      setLoadingMessages(false);
-    }
   };
 
   const createChannel = async () => {
@@ -387,12 +519,19 @@ export const MessagingWorkspace = () => {
 
   const handleSendMessage = async () => {
     const content = draft.trim();
-    if (!selectedChannelId || !content || sending) return;
+    const hasAttachments = attachmentDrafts.length > 0;
+    if (!selectedChannelId || (!content && !hasAttachments) || sending || uploadingAttachments) return;
 
     setSending(true);
     setError(null);
 
     try {
+      let attachmentUrls: string[] = [];
+      if (hasAttachments) {
+        setUploadingAttachments(true);
+        attachmentUrls = await uploadAttachmentDrafts();
+      }
+
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: {
@@ -400,7 +539,11 @@ export const MessagingWorkspace = () => {
           ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ channelId: selectedChannelId, content }),
+        body: JSON.stringify({
+          channelId: selectedChannelId,
+          content,
+          attachmentUrls,
+        }),
       });
 
       const data = await response.json().catch(() => ({}));
@@ -409,10 +552,13 @@ export const MessagingWorkspace = () => {
       }
 
       setDraft('');
+      attachmentDrafts.forEach((draft) => URL.revokeObjectURL(draft.previewUrl));
+      setAttachmentDrafts([]);
       await reloadMessages();
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : 'Failed to send message');
     } finally {
+      setUploadingAttachments(false);
       setSending(false);
     }
   };
@@ -647,14 +793,42 @@ export const MessagingWorkspace = () => {
                     </p>
 
                     {message.attachments && message.attachments.length > 0 ? (
-                      <div className="mt-4 space-y-2">
-                        {message.attachments.map((attachment) => (
-                          <div key={attachment.id} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                            <Paperclip className="h-4 w-4 text-blue-600" />
-                            <span className="truncate font-medium">{attachment.filename}</span>
-                            <span className="ml-auto text-xs text-gray-500">{attachment.mimeType}</span>
-                          </div>
-                        ))}
+                      <div className="mt-4 space-y-3">
+                        {message.attachments.map((attachment) => {
+                          const isImage = attachment.mimeType.startsWith('image/');
+
+                          return (
+                            <a
+                              key={attachment.id}
+                              href={attachment.storagePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 shadow-sm transition hover:border-blue-200 hover:bg-gray-100"
+                            >
+                              {isImage ? (
+                                <img
+                                  src={attachment.storagePath}
+                                  alt={attachment.filename}
+                                  className="max-h-[360px] w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex items-center gap-3 px-3 py-3 text-sm text-gray-700">
+                                  <Paperclip className="h-4 w-4 text-blue-600" />
+                                  <span className="truncate font-medium">{attachment.filename}</span>
+                                  <span className="ml-auto text-xs text-gray-500">Open attachment</span>
+                                </div>
+                              )}
+
+                              {isImage ? (
+                                <div className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700">
+                                  <Paperclip className="h-4 w-4 text-blue-600" />
+                                  <span className="truncate font-medium">{attachment.filename}</span>
+                                  <span className="ml-auto text-xs text-gray-500">{attachment.mimeType}</span>
+                                </div>
+                              ) : null}
+                            </a>
+                          );
+                        })}
                       </div>
                     ) : null}
                   </div>
@@ -666,6 +840,41 @@ export const MessagingWorkspace = () => {
 
         <div className="border-t border-gray-100 bg-white p-4">
           <div className="rounded-3xl border border-gray-200 bg-gray-50 p-3 shadow-sm">
+            {attachmentDrafts.length > 0 ? (
+              <div className="mb-3 grid gap-3 sm:grid-cols-2">
+                {attachmentDrafts.map((attachment) => (
+                  <div key={attachment.id} className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                    {attachment.isImage ? (
+                      <img
+                        src={attachment.previewUrl}
+                        alt={attachment.file.name}
+                        className="h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center bg-gray-50 px-4 text-center text-sm text-gray-500">
+                        <div>
+                          <p className="font-semibold text-gray-900">{attachment.file.name}</p>
+                          <p className="mt-1 text-xs text-gray-500">{attachment.file.type || 'file'} • {formatFileSize(attachment.file.size)}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => removeAttachmentDraft(attachment.id)}
+                      className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm hover:bg-white"
+                      aria-label={`Remove ${attachment.file.name}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+
+                    <div className="border-t border-gray-100 px-3 py-2 text-xs text-gray-600">
+                      {attachment.file.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -675,18 +884,38 @@ export const MessagingWorkspace = () => {
               className="w-full resize-none rounded-2xl border border-transparent bg-white px-4 py-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
             />
 
-            <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-xs text-gray-500">
-                The message is posted to <span className="font-semibold text-gray-700">/api/messages</span> and stored in the database.
+                The message is posted to <span className="font-semibold text-gray-700">/api/messages</span> and attachments are uploaded through Cloudinary first.
               </div>
-              <button
-                onClick={() => void handleSendMessage()}
-                disabled={!selectedChannelId || !draft.trim() || sending}
-                className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-              >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Send
-              </button>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleAttachmentSelection}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!selectedChannelId}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Attach
+                </button>
+
+                <button
+                  onClick={() => void handleSendMessage()}
+                  disabled={!selectedChannelId || (!draft.trim() && attachmentDrafts.length === 0) || sending || uploadingAttachments}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                >
+                  {sending || uploadingAttachments ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {uploadingAttachments ? 'Uploading...' : 'Send'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
