@@ -44,6 +44,9 @@ describe('AnalyticsService', () => {
 
     expect(result).toEqual({ total: 10, open: 6, closed: 4 });
     expect(databaseService.ticket.count).toHaveBeenCalledTimes(2);
+    expect(databaseService.ticket.count).toHaveBeenNthCalledWith(2, {
+      where: { status: { in: ['RESOLVED', 'CLOSED'] } },
+    });
   });
 
   it('calculates average response time from first comment', async () => {
