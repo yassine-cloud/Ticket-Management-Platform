@@ -99,3 +99,6 @@ npm run lint    # lint
 - `project_description.md` - extended description
 - `models_and_fields.md` - data models
 - `rest_graphql_usage.md` - API guidance
+- `MESSAGING_INTEGRATION.md` - messaging module setup and usage guide
+- `JWT_INTEGRATION.md` - JWT authentication integration for the messaging module
+- `FILES_INTEGRATION.md` - file upload system with Cloudinary integration

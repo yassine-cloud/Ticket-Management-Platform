@@ -1,5 +1,30 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Quick Start
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Start Development Server
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:3001` (or `3000` if port 3001 is in use).
+
+### 3. Backend API
+
+Ensure the backend is running on `http://localhost:3000` before using messaging features.
+
+## Features
+
+- **Messaging Module**: Real-time channels, messages, and file uploads via Cloudinary
+- See [MESSAGING_INTEGRATION.md](../MESSAGING_INTEGRATION.md) for detailed API documentation
+
 ## Getting Started
 
 First, run the development server:
