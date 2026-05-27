@@ -17,6 +17,19 @@ export class TicketsService {
   async create(createTicketDto: CreateTicketDto) {
     const ticket = await this.prisma.ticket.create({
       data: createTicketDto,
+    });
+
+    this.eventEmitter.emit(TICKET_EVENTS.CREATED, ticket);
+    this.eventEmitter.emit(TicketEvents.Created, ticket);
+    if (ticket.priority === 'CRITICAL') {
+      this.eventEmitter.emit(TicketEvents.CriticalCreated, ticket);
+    }
+    return ticket;
+  }
+
+  findAll(projectId?: string) {
+    return this.prisma.ticket.findMany({
+      where: projectId ? { projectId } : undefined,
       include: {
         parent: true,
         labels: {

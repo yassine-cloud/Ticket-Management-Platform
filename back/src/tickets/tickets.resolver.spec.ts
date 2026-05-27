@@ -11,7 +11,7 @@ describe('TicketsResolver', () => {
         TicketsResolver,
         {
           provide: TicketsService,
-          useValue: {}, // Mock TicketsService
+          useValue: {},
         },
       ],
     }).compile();
