@@ -1,15 +1,21 @@
+"use client";
+
 import React from 'react';
 import { BaseLayout } from '@/components/layout/BaseLayout';
 import { Ticket, Users, CheckCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const displayName = user?.displayName ?? user?.username ?? 'there';
+
   return (
     <BaseLayout>
       <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Here is a quick overview of your workspace.</p>
+          <p className="text-sm text-gray-500 mt-1">Welcome back, {displayName}. Here is a quick overview of your workspace.</p>
         </div>
 
         {/* Stats Section */}

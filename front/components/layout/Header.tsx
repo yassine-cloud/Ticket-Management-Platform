@@ -1,9 +1,13 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bell, Search, Settings, LogOut, UserCircle, Menu, Check } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export const Header = () => {
+  const router = useRouter();
+  const { logout, user } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   
@@ -28,6 +32,22 @@ export const Header = () => {
     { id: 2, text: "You were assigned to TKT-124: Update DB schema", time: "1 hour ago", unread: true },
     { id: 3, text: "Project Alpha deployment succeeded", time: "3 hours ago", unread: false },
   ];
+
+  const profileName = user?.displayName ?? user?.username ?? 'User';
+  const profileEmail = user?.email ?? 'user@example.com';
+  const initials = profileName
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const handleLogout = async () => {
+    await logout();
+    setIsProfileOpen(false);
+    router.replace('/auth/login');
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
@@ -99,15 +119,15 @@ export const Header = () => {
             className="flex items-center gap-2 focus:outline-none"
           >
             <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-              JD
+              {initials}
             </div>
           </button>
           
           {isProfileOpen && (
             <div className="absolute right-0 mt-4 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-50">
               <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-xl">
-                <p className="text-sm font-semibold text-gray-900">John Doe</p>
-                <p className="text-xs text-gray-500 truncate mt-0.5">john.doe@example.com</p>
+                <p className="text-sm font-semibold text-gray-900">{profileName}</p>
+                <p className="text-xs text-gray-500 truncate mt-0.5">{profileEmail}</p>
               </div>
               <div className="py-2">
                 <Link 
@@ -127,13 +147,12 @@ export const Header = () => {
               </div>
               <div className="border-t border-gray-100 my-1"></div>
               <div className="py-2">
-                <Link 
-                  href="/auth/login" 
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut className="w-4 h-4" /> Sign out
-                </Link>
+                </button>
               </div>
             </div>
           )}
