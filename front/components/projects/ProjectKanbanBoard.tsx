@@ -4,16 +4,17 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   MoreHorizontal, Plus, X, GripVertical, AlertCircle, CalendarClock, MessageSquare
 } from 'lucide-react';
-import { ticketsAPI, Ticket, Status, CreateTicketInput } from '../../lib/api/tickets.api';
+import { formatTicketStatusLabel, ticketsAPI, Ticket, Status, CreateTicketInput } from '../../lib/api/tickets.api';
 import { useToast } from '../ui/Toast';
 
 // For optimistic IDs
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
 const priorityColors: Record<string, { bg: string, text: string, ring: string }> = {
-  Low: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200' },
-  Medium: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200' },
-  High: { bg: 'bg-rose-50', text: 'text-rose-700', ring: 'ring-rose-200' },
+  LOW: { bg: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-200' },
+  MEDIUM: { bg: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-200' },
+  HIGH: { bg: 'bg-rose-50', text: 'text-rose-700', ring: 'ring-rose-200' },
+  CRITICAL: { bg: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-200' },
 };
 
 function getInitials(name: string) {
@@ -33,7 +34,7 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newStatusId, setNewStatusId] = useState('');
-  const [newPriority, setNewPriority] = useState('Medium');
+  const [newPriority, setNewPriority] = useState('MEDIUM');
 
   const { toast } = useToast();
 
@@ -115,13 +116,13 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
 
   const moveTicket = async (ticketId: string, nextStatusId: string) => {
     const ticket = tickets.find((item) => item.id === ticketId);
-    if (!ticket || ticket.statusId === nextStatusId) return;
+    if (!ticket || ticket.status === nextStatusId) return;
 
 
     setTickets((currentTickets) =>
       currentTickets.map((item) =>
         item.id === ticketId
-          ? { ...item, statusId: nextStatusId, status: undefined, updatedAt: new Date().toISOString() }
+          ? { ...item, status: nextStatusId as Ticket['status'], updatedAt: new Date().toISOString() }
           : item
       ),
     );
@@ -130,17 +131,17 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
 
     toast({ title: 'Ticket Moved', description: `TKT-${ticket.id.substring(0, 4)} moved.`, type: 'info' });
 
-    const res = await ticketsAPI.updateTicket(ticketId, { statusId: nextStatusId });
+    const res = await ticketsAPI.updateTicket(ticketId, { status: nextStatusId as Ticket['status'] });
     if (!res.data && res.error) {
       toast({ title: 'Failed to move ticket', description: res.error, type: 'error' });
-      // Revert: restore original statusId and status object
+      // Revert: restore original status value
       setTickets((currentTickets) =>
         currentTickets.map((item) =>
-          item.id === ticketId ? { ...item, statusId: ticket.statusId, status: ticket.status } : item
+          item.id === ticketId ? { ...item, status: ticket.status } : item
         ),
       );
     } else if (res.data) {
-      // Replace with the server's authoritative version (has correct status object)
+      // Replace with the server's authoritative version
       setTickets((currentTickets) =>
         currentTickets.map((item) => (item.id === ticketId ? res.data! : item)),
       );
@@ -159,9 +160,9 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
       projectId,
       title: newTitle,
       description: newDesc,
-      statusId: newStatusId,
+      status: newStatusId as Ticket['status'],
       reporterId: currentUser?.id || '00000000-0000-0000-0000-000000000000',
-      priority: newPriority.toUpperCase() as any,
+      priority: newPriority.toUpperCase(),
       type: 'TASK' as any,
     };
 
@@ -214,8 +215,13 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
 
       <div className="flex gap-6 overflow-x-auto pb-6 px-1 snap-x scroll-smooth hide-scrollbar">
         {statuses.map(status => {
-          const colTickets = tickets.filter(t => t.statusId === status.id || t.status?.id === status.id);
+          const colTickets = tickets.filter(t => t.status === status.id);
           const isHovered = hoveredColumn === status.id;
+          const statusTone = status.id === 'RESOLVED' || status.id === 'CLOSED'
+            ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+            : status.id === 'IN_PROGRESS'
+              ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+              : 'bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.5)]';
 
           return (
             <div
@@ -231,15 +237,15 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
             >
               <div className="flex justify-between items-center mb-5 px-1">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${status.name === 'Done' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : status.name === 'In Progress' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-slate-400 shadow-[0_0_10px_rgba(148,163,184,0.5)]'}`} />
-                  <h3 className="font-bold text-slate-800 tracking-wide">{status.name}</h3>
+                  <div className={`w-3 h-3 rounded-full ${statusTone}`} />
+                  <h3 className="font-bold text-slate-800 tracking-wide">{formatTicketStatusLabel(status.name)}</h3>
                 </div>
                 <span className="bg-white text-slate-600 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm border border-slate-100">{colTickets.length}</span>
               </div>
 
               <div className="flex flex-col gap-3 min-h-[200px]">
                 {colTickets.map(ticket => {
-                  const pColor = priorityColors[ticket.priority] || priorityColors.Medium;
+                  const pColor = priorityColors[ticket.priority.toUpperCase()] || priorityColors.MEDIUM;
                   return (
                     <article
                       key={ticket.id}
@@ -366,9 +372,10 @@ export function ProjectKanbanBoard({ projectId }: { projectId: string }) {
                     onChange={e => setNewPriority(e.target.value)}
                     className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none bg-white"
                   >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
                   </select>
                 </div>
               </div>

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { BaseLayout } from '@/components/layout/BaseLayout';
 import Link from 'next/link';
 import { Filter, Search, Plus, MoreHorizontal, X, Clock, AlertCircle } from 'lucide-react';
-import { ticketsAPI, Ticket, Status, CreateTicketInput, UpdateTicketInput } from '@/lib/api/tickets.api';
+import { formatTicketStatusLabel, ticketsAPI, Ticket, Status } from '@/lib/api/tickets.api';
 import { projectsAPI, Project } from '@/lib/api/projects.api';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -31,7 +31,7 @@ export default function TicketsPage() {
   // Form states
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [statusId, setStatusId] = useState('');
+  const [statusId, setStatusId] = useState<any>('');
   const [priority, setPriority] = useState('MEDIUM');
   const [projectId, setProjectId] = useState('');
 
@@ -82,7 +82,7 @@ export default function TicketsPage() {
       ticketsAPI.getStatuses(projectId).then(res => {
         if (res.data) {
           setStatuses(res.data);
-          if (res.data.length > 0 && !editingTicket) setStatusId(res.data[0].id);
+          if (res.data.length > 0 && !editingTicket) setStatusId(res.data[0].id as any);
         }
       });
     }
@@ -118,22 +118,23 @@ export default function TicketsPage() {
     setDescription(ticket.description || '');
     setPriority(ticket.priority);
     setProjectId(ticket.projectId);
-    setStatusId(ticket.statusId);
+    setStatusId(ticket.status as any);
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !statusId || !projectId) return;
+    const selectedStatus = statusId as any;
 
     if (editingTicket) {
       // Edit workflow
-      const input: UpdateTicketInput = {
+      const input = {
         title,
         description,
-        statusId,
+        status: selectedStatus,
         priority: priority.toUpperCase()
-      };
+      } as any;
       const res = await ticketsAPI.updateTicket(editingTicket.id, input);
       if (res.data) {
         toast({ title: 'Ticket Updated', description: 'Your changes have been saved.', type: 'success' });
@@ -144,15 +145,15 @@ export default function TicketsPage() {
       }
     } else {
       // Create workflow
-      const input: CreateTicketInput = {
+      const input = {
         projectId,
         title,
         description,
-        statusId,
+        status: selectedStatus,
         priority: priority.toUpperCase(),
         reporterId: user?.id || '00000000-0000-0000-0000-000000000000',
         type: 'TASK'
-      };
+      } as any;
       const res = await ticketsAPI.createTicket(input);
       if (res.data) {
         toast({ title: 'Ticket Created', description: 'New ticket added successfully.', type: 'success' });
@@ -203,7 +204,7 @@ export default function TicketsPage() {
               className="px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Statuses</option>
-              {uniqueStatusNames.map(name => <option key={name} value={name}>{name}</option>)}
+              {uniqueStatusNames.map(name => <option key={name} value={name}>{formatTicketStatusLabel(name)}</option>)}
             </select>
             <select 
               value={filterPriority}
@@ -260,7 +261,7 @@ export default function TicketsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                        {ticket.status?.name || 'Unknown'}
+                        {formatTicketStatusLabel(ticket.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
@@ -350,7 +351,7 @@ export default function TicketsPage() {
                       value={statusId}
                       onChange={e => setStatusId(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm bg-white cursor-pointer">
-                      {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      {statuses.map(s => <option key={s.id} value={s.id}>{formatTicketStatusLabel(s.name)}</option>)}
                     </select>
                   </div>
                 </div>

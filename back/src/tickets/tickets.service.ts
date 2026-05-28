@@ -27,22 +27,6 @@ export class TicketsService {
     return ticket;
   }
 
-  findAll(projectId?: string) {
-    return this.prisma.ticket.findMany({
-      where: projectId ? { projectId } : undefined,
-      include: {
-        parent: true,
-        labels: {
-          include: { label: true },
-        },
-        attachments: true,
-      },
-    });
-
-    this.eventEmitter.emit(TICKET_EVENTS.CREATED, ticket);
-    return ticket;
-  }
-
   async findAll(projectId?: string, page: number = 1, limit: number = 50, search?: string, statusId?: string, priority?: string) {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -84,7 +68,6 @@ export class TicketsService {
         skip,
         take: limit,
         include: {
-          status: true,
           parent: true,
           labels: {
             include: { label: true },
@@ -97,17 +80,6 @@ export class TicketsService {
     ]);
 
     return { data, total, page, limit };
-  }
-
-  async findStatuses(projectId?: string) {
-    const where: any = {};
-    if (projectId) {
-      where.projectId = projectId;
-    }
-    return this.prisma.ticketStatus.findMany({
-      where,
-      orderBy: { order: 'asc' },
-    });
   }
 
   async findOne(id: string) {
@@ -136,7 +108,6 @@ export class TicketsService {
       where: { id },
       data: updateTicketDto,
       include: {
-        status: true,
         parent: true,
         labels: {
           include: { label: true },

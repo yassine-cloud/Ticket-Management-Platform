@@ -20,6 +20,7 @@ import { Observable, fromEvent, map, merge } from 'rxjs';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { TicketStatus } from '../../generated/prisma/enums';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('tickets')
@@ -71,7 +72,7 @@ export class TicketsController {
   @Get('statuses')
   @Permissions('assign_ticket')
   findStatuses(@Query('projectId') projectId?: string) {
-    return this.ticketsService.findStatuses(projectId);
+    return TicketStatus
   }
 
   @Get(':id')

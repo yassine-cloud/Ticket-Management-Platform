@@ -7,6 +7,16 @@ export interface Status {
   color?: string;
 }
 
+export const TICKET_STATUS_VALUES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
+export type TicketStatusValue = (typeof TICKET_STATUS_VALUES)[number];
+
+export function formatTicketStatusLabel(status: string) {
+  return status
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export interface Ticket {
   id: string;
   projectId: string;
@@ -14,7 +24,7 @@ export interface Ticket {
   description?: string;
   type: string;
   priority: string;
-  statusId: string;
+  status: string;
   reporterId: string;
   assigneeId?: string;
   parentId?: string;
@@ -23,7 +33,6 @@ export interface Ticket {
   dueDate?: string;
   createdAt: string;
   updatedAt: string;
-  status?: { name: string; id: string };
   assignee?: { id: string; name: string };
 }
 
@@ -33,7 +42,7 @@ export interface CreateTicketInput {
   description?: string;
   type?: string;
   priority?: string;
-  statusId: string;
+  status: string;
   reporterId: string;
   assigneeId?: string;
 }
@@ -43,7 +52,7 @@ export interface UpdateTicketInput {
   description?: string;
   type?: string;
   priority?: string;
-  statusId?: string;
+  status?: string;
   assigneeId?: string;
 }
 
@@ -55,6 +64,38 @@ export type ApiResponse<T> = {
   page?: number;
   limit?: number;
 };
+
+function normalizeStatusesPayload(data: unknown): Status[] {
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => {
+        if (typeof item === 'string') {
+          return { id: item, name: item };
+        }
+
+        if (item && typeof item === 'object') {
+          const typedItem = item as Partial<Status> & { value?: string };
+          const id = typedItem.id ?? typedItem.value ?? typedItem.name;
+          const name = typedItem.name ?? typedItem.value ?? typedItem.id;
+
+          if (id && name) {
+            return { id, name, color: typedItem.color };
+          }
+        }
+
+        return null;
+      })
+      .filter((item): item is Status => item !== null);
+  }
+
+  if (data && typeof data === 'object') {
+    return Object.values(data as Record<string, unknown>)
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => ({ id: value, name: value }));
+  }
+
+  return [];
+}
 
 export const ticketsAPI = {
   async getTickets(projectId?: string, page: number = 1, limit: number = 50, search?: string, statusId?: string, priority?: string): Promise<ApiResponse<Ticket[]>> {
@@ -93,7 +134,8 @@ export const ticketsAPI = {
         return { error: `Failed to fetch statuses: ${response.statusText}`, status: response.status, data: [] };
       }
       const data = await response.json();
-      return { data, status: response.status };
+      const normalized = normalizeStatusesPayload(data.data ?? data);
+      return { data: normalized, status: response.status };
     } catch (e: any) {
       return { error: e.message || 'An error occurred', data: [] };
     }
